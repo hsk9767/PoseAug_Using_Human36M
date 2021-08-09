@@ -48,8 +48,6 @@ def main(args):
     elif args.keypoints == 'resnet':
         print("==> Creating 2D pose estimation model...")
         estimator_2d = get_resnet(args) # already in cuda, eval
-    else:
-        raise NotImplementedError("Corresponding model is not supported")
     
     print("==> Prepare optimizer...")
     criterion = nn.MSELoss(reduction='mean').to(device)

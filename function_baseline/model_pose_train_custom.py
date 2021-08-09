@@ -60,7 +60,7 @@ def train(data_loader, model_pos, criterion, optimizer, device, lr_init, lr_now,
         if step % decay == 0 or step == 1:
             lr_now = lr_decay(optimizer, step, lr_init, decay, gamma)
 
-        img_patch, joint_img, joint_cam = img_patch.to(device), joint_img.to(device), joint_cam.to(device)
+        joint_img, joint_cam = joint_img.to(device), joint_cam.to(device)
         targets_3d = joint_cam[:, :, :] - joint_cam[:, :1, :]  # the output is relative to the 0 joint
         
         if type_2d == 'gt':
@@ -68,6 +68,7 @@ def train(data_loader, model_pos, criterion, optimizer, device, lr_init, lr_now,
         else:
             assert estimator_2d is not None
             with torch.no_grad():
+                img_patch = img_patch.to(device)
                 heatmaps_2d = estimator_2d(img_patch)
                 B, C, H, W = heatmaps_2d.shape
                 heatmaps_2d = heatmaps_2d.view((B, C, -1)).contiguous()

@@ -6,7 +6,7 @@ import numpy as np
 from torch.utils.data import DataLoader
 import torchvision.transforms as transforms
 
-from common.common_dataset import DatasetLoader
+from common.common_dataset import DatasetLoader, DatasetLoader_only_lifting
 
 pixel_mean = (0.485, 0.456, 0.406)
 pixel_std = (0.229, 0.224, 0.225)
@@ -20,17 +20,31 @@ class Data_Custom(object):
         
         path_3d = 'common.' + 'h36m_dataset_custom'
         exec('from ' + path_3d + ' import ' + 'Human36M')
+        type_2d = args.keypoints
+        if type_2d == 'gt':
+            only_lifting = True
+        else:
+            only_lifting = False
         
         if self.is_train:
-            train_dataset_3d = DatasetLoader(eval('Human36M')('train'), ref_joints_name=None, is_train=True, transform=transforms.Compose([\
-                                                                                                                transforms.ToTensor(),
-                                                                                                                transforms.Normalize(mean=pixel_mean, std=pixel_std)]))
+            if not only_lifting:
+                train_dataset_3d = DatasetLoader(eval('Human36M')('train'), ref_joints_name=None, is_train=True, transform=transforms.Compose([\
+                                                                                                                    transforms.ToTensor(),
+                                                                                                                    transforms.Normalize(mean=pixel_mean, std=pixel_std)]))
+            else:
+                train_dataset_3d = DatasetLoader_only_lifting(eval('Human36M')('train'), ref_joints_name=None, is_train=True, transform=transforms.Compose([\
+                                                                                                                    transforms.ToTensor(),
+                                                                                                                    transforms.Normalize(mean=pixel_mean, std=pixel_std)]))
         else:
             train_dataset_3d = None
-        valid_dataset_3d = DatasetLoader(eval('Human36M')('test'), ref_joints_name=None, is_train=False, transform=transforms.Compose([\
+        if not only_lifting:
+            valid_dataset_3d = DatasetLoader(eval('Human36M')('test'), ref_joints_name=None, is_train=False, transform=transforms.Compose([\
                                                                                                             transforms.ToTensor(),
                                                                                                                     transforms.Normalize(mean=pixel_mean, std=pixel_std)]))
-        
+        else:
+            valid_dataset_3d = DatasetLoader_only_lifting(eval('Human36M')('test'), ref_joints_name=None, is_train=False, transform=transforms.Compose([\
+                                                                                                            transforms.ToTensor(),
+                                                                                                                    transforms.Normalize(mean=pixel_mean, std=pixel_std)]))
         if self.is_train:
             train_loader = DataLoader(train_dataset_3d, batch_size=args.batch_size, shuffle=True, num_workers=args.num_workers, pin_memory=True)
         else:

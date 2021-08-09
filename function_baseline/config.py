@@ -33,7 +33,7 @@ def get_parse_args():
     parser.add_argument('--dropout', default=0.25, type=float, help='dropout rate')
 
     # Training detail
-    parser.add_argument('--batch_size', default=512, type=int, metavar='N',
+    parser.add_argument('--batch_size', default=64, type=int, metavar='N',
                         help='batch size in terms of predicted frames')
     parser.add_argument('--epochs', default=50, type=int, metavar='N', help='number of training epochs')
 
