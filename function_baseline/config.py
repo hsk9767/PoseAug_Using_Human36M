@@ -9,7 +9,11 @@ def get_parse_args():
     parser.add_argument('--dataset', default='h36m', type=str, metavar='NAME', help='target dataset')
     parser.add_argument('--keypoints', default='gt', type=str, metavar='NAME', help='2D detections to use, \
     gt/hr/cpn_ft_h36m_dbb/detectron_ft_h36m')
+<<<<<<< HEAD
     parser.add_argument('--path_2d', default = 'pelee/final_state.pth.tar', type=str, help = 'weight path of the 2D estimation network')
+=======
+    parser.add_argument('--path_2d', default = 'pelee/output/coco/pose_resnet_50/256x192_d256x3_adam_lr1e-3/final_state.pth.tar', type=str, help = 'weight path of the 2D estimation network')
+>>>>>>> 4352614ed390a5f0d83337cf6b35bff8c8bc1bdb
     parser.add_argument('--actions', default='*', type=str, metavar='LIST',
                         help='actions to train/test on, separated by comma, or * for all')
     parser.add_argument('--checkpoint', default='checkpoint/debug', type=str, metavar='PATH',

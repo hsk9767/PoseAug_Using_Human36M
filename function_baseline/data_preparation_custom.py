@@ -26,7 +26,9 @@ class Data_Custom(object):
         else:
             only_lifting = False
         
+        # train -> train loader & valid loader
         if self.is_train:
+            # unless 2D pose estimation network inferencing
             if not only_lifting:
                 train_dataset_3d = DatasetLoader(eval('Human36M')('train'), ref_joints_name=None, is_train=True, transform=transforms.Compose([\
                                                                                                                     transforms.ToTensor(),
@@ -37,6 +39,7 @@ class Data_Custom(object):
                                                                                                                     transforms.Normalize(mean=pixel_mean, std=pixel_std)]))
         else:
             train_dataset_3d = None
+        
         if not only_lifting:
             valid_dataset_3d = DatasetLoader(eval('Human36M')('test'), ref_joints_name=None, is_train=False, transform=transforms.Compose([\
                                                                                                             transforms.ToTensor(),
