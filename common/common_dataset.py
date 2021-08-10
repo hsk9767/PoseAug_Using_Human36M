@@ -127,6 +127,7 @@ class DatasetLoader_only_lifting(Dataset):
         bb_height = float(bbox[3])
         trans = gen_trans_from_patch_cv(bb_c_x, bb_c_y, bb_width, bb_height, input_shape[1], input_shape[0], scale, rot, inv=False)
         
+        
         # joint_img in image plane to bbox plane
         for i in range(len(joint_img)):
             joint_img[i, 0:2] = trans_point2d(joint_img[i, 0:2], trans)
