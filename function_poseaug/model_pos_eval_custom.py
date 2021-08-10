@@ -59,10 +59,10 @@ def evaluate(data_loader, model_pos_eval, device, type_2d, estimator_2d=None, su
 
         with torch.no_grad():
             if flipaug:  # flip the 2D pose Left <-> Right
-                joints_left = [4, 5, 6, 10, 11, 12]
-                joints_right = [1, 2, 3, 13, 14, 15]
-                out_left = [4, 5, 6, 10, 11, 12]
-                out_right = [1, 2, 3, 13, 14, 15]
+                joints_left = [4, 5, 6, 9, 10, 11]
+                joints_right = [1, 2, 3, 12, 13, 14]
+                out_left = [4, 5, 6, 9, 10, 11]
+                out_right = [1, 2, 3, 12, 13, 14]
 
                 inputs_2d_flip = inputs_2d.detach().clone()
                 inputs_2d_flip[:, :, 0] *= -1
@@ -79,8 +79,8 @@ def evaluate(data_loader, model_pos_eval, device, type_2d, estimator_2d=None, su
 
         # caculate the relative position.
         targets_3d = targets_3d[:, :, :] - targets_3d[:, :1, :]  # the output is relative to the 0 joint
-        outputs_3d = outputs_3d[:, :, :] - outputs_3d[:, :1, :]  # the output is relative to the 0 joint
-
+        outputs_3d = outputs_3d[:, :, :] - outputs_3d[:, :1, :]
+        
         # compute p1 and p2
         p1score = mpjpe(outputs_3d, targets_3d).item() * 1000.0
         epoch_p1.update(p1score, num_poses)

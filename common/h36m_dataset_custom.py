@@ -90,7 +90,7 @@ class Human36M:
             with open(osp.join(self.annot_path, 'Human36M_subject' + str(subject) + '_joint_3d.json'),'r') as f:
                 joints[str(subject)] = json.load(f)
         db.createIndex()
-       
+    
         # if self.data_split == 'test' and not True:
         #     print("Get bounding box and root from " + self.human_bbox_root_dir)
         #     bbox_root_result = {}
@@ -108,7 +108,7 @@ class Human36M:
             img = db.loadImgs(image_id)[0]
             img_path = osp.join(self.img_dir, img['file_name'])
             img_width, img_height = img['width'], img['height']
-           
+        
             # check subject and frame_idx
             subject = img['subject']; frame_idx = img['frame_idx'];
             if subject not in subject_list:

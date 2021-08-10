@@ -5,22 +5,49 @@
     "version": "0.2.0",
     "configurations": [
         {
+            "name": "Evaluation mlp",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/run_evaluate_custom.py",
+            "console": "integratedTerminal",
+            "env":{
+                "CUDA_VISIBLE_DEVICES" : "3"
+            },
+            "args": [
+                "--posenet_name",
+                "mlp",
+                "--stages",
+                "2",
+                "--keypoints",
+                "gt",
+                "--evaluate",
+                "checkpoint/pretrain_baseline/mlp/gt/0810141731_low_batch_lr_decay_3000/ckpt_best.pth.tar"
+            ]
+        },
+        {
             "name": "RunInference_gcn",
             "type": "python",
             "request": "launch",
             "program": "${workspaceFolder}/run_inference.py",
             "console": "integratedTerminal",
             "env": {
-                "CUDA_VISIBLE_DEVICES" : "1"
+                "CUDA_VISIBLE_DEVICES": "1"
             },
-            "args":[
-                "--note", "pretrain", 
-                "--dropout", "0",
-                "--lr", "2e-2",
-                "--epochs", "100",
-                "--posenet_name", "gcn",
-                "--checkpoint", "./checkpoint/pretrain_baseline",
-                "--keypoints", "gt"
+            "args": [
+                "--note",
+                "pretrain",
+                "--dropout",
+                "0",
+                "--lr",
+                "2e-2",
+                "--epochs",
+                "100",
+                "--posenet_name",
+                "gcn",
+                "--checkpoint",
+                "./checkpoint/pretrain_baseline",
+                "--keypoints",
+                "gt"
             ]
         },
         {
@@ -30,14 +57,19 @@
             "program": "${workspaceFolder}/run_inference.py",
             "console": "integratedTerminal",
             "env": {
-                "CUDA_VISIBLE_DEVICES" : "1"
+                "CUDA_VISIBLE_DEVICES": "1"
             },
-            "args":[
-                "--note", "pretrain", 
-                "--lr", "1e-3",
-                "--posenet_name", "videopose",
-                "--checkpoint", "./checkpoint/pretrain_baseline",
-                "--keypoints", "gt"
+            "args": [
+                "--note",
+                "pretrain",
+                "--lr",
+                "1e-3",
+                "--posenet_name",
+                "videopose",
+                "--checkpoint",
+                "./checkpoint/pretrain_baseline",
+                "--keypoints",
+                "gt"
             ]
         },
         {
@@ -47,15 +79,21 @@
             "program": "${workspaceFolder}/run_inference.py",
             "console": "integratedTerminal",
             "env": {
-                "CUDA_VISIBLE_DEVICES" : "1"
+                "CUDA_VISIBLE_DEVICES": "1"
             },
-            "args":[
-                "--note", "pretrain", 
-                "--lr", "1e-3",
-                "--stages", "2",
-                "--posenet_name", "mlp",
-                "--checkpoint", "./checkpoint/pretrain_baseline",
-                "--keypoints", "gt"
+            "args": [
+                "--note",
+                "pretrain",
+                "--lr",
+                "1e-3",
+                "--stages",
+                "2",
+                "--posenet_name",
+                "mlp",
+                "--checkpoint",
+                "./checkpoint/pretrain_baseline",
+                "--keypoints",
+                "gt"
             ]
         },
         {
@@ -65,16 +103,23 @@
             "program": "${workspaceFolder}/run_inference.py",
             "console": "integratedTerminal",
             "env": {
-                "CUDA_VISIBLE_DEVICES" : "1"
+                "CUDA_VISIBLE_DEVICES": "1"
             },
-            "args":[
-                "--note", "pretrain",
-                "--dropout", "-1" ,
-                "--lr", "1e-3",
-                "--stages", "2",
-                "--posenet_name", "stgcn",
-                "--checkpoint", "./checkpoint/pretrain_baseline",
-                "--keypoints", "gt"
+            "args": [
+                "--note",
+                "pretrain",
+                "--dropout",
+                "-1",
+                "--lr",
+                "1e-3",
+                "--stages",
+                "2",
+                "--posenet_name",
+                "stgcn",
+                "--checkpoint",
+                "./checkpoint/pretrain_baseline",
+                "--keypoints",
+                "gt"
             ]
         },
         {
@@ -84,15 +129,21 @@
             "program": "${workspaceFolder}/run_baseline_custom.py",
             "console": "integratedTerminal",
             "env": {
-                "CUDA_VISIBLE_DEVICES" : "3"
+                "CUDA_VISIBLE_DEVICES": "3"
             },
-            "args":[
-                "--note", "pretrain",
-                "--lr", "1e-3",
-                "--stages", "2",
-                "--posenet_name", "mlp",
-                "--checkpoint", "./checkpoint/pretrain_baseline",
-                "--keypoints", "gt"
+            "args": [
+                "--note",
+                "pretrain",
+                "--lr",
+                "1e-3",
+                "--stages",
+                "2",
+                "--posenet_name",
+                "mlp",
+                "--checkpoint",
+                "./checkpoint/pretrain_baseline",
+                "--keypoints",
+                "gt"
             ]
         }
     ]
