@@ -1,0 +1,7 @@
+*.pth
+*.tar
+*.txt
+*.eps
+*.pyc
+data/Human3.6M
+pose_resnet_50_256x256.pth.tar
