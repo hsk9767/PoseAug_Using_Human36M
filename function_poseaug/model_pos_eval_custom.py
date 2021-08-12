@@ -22,8 +22,8 @@ def evaluate(data_loader, model_pos_eval, device, type_2d, estimator_2d=None, su
     data_time = AverageMeter()
     epoch_p1 = AverageMeter()
     epoch_p2 = AverageMeter()
-    epoch_auc = AverageMeter()
-    epoch_pck = AverageMeter()
+    # epoch_auc = AverageMeter()
+    # epoch_pck = AverageMeter()
 
     # Switch to evaluate mode
     model_pos_eval.eval()
@@ -82,7 +82,7 @@ def evaluate(data_loader, model_pos_eval, device, type_2d, estimator_2d=None, su
         outputs_3d = outputs_3d[:, :, :] - outputs_3d[:, :1, :]
         
         # compute p1 and p2
-        p1score = mpjpe(outputs_3d, targets_3d).item() * 1000.0
+        p1score = mpjpe(outputs_3d[:, :-1, :], targets_3d[:, :-1, :]).item() * 1000.0
         epoch_p1.update(p1score, num_poses)
         p2score = p_mpjpe(outputs_3d.numpy(), targets_3d.numpy()).item() * 1000.0
         epoch_p2.update(p2score, num_poses)
@@ -124,9 +124,9 @@ def evaluate_posenet(args, data_dict, model_pos, model_pos_eval, device, summary
     """
     with torch.no_grad():
         model_pos_eval.load_state_dict(model_pos.state_dict())
-        h36m_p1, h36m_p2 = evaluate(data_dict['H36M_test'], model_pos_eval, device, summary, writer,
+        h36m_p1, h36m_p2 = evaluate(data_dict['valid_loader'], model_pos_eval, device, summary, writer,
                                              key='H36M_test', tag=tag, flipaug='')  # no flip aug for h36m
-        dhp_p1, dhp_p2 = evaluate(data_dict['mpi3d_loader'], model_pos_eval, device, summary, writer,
-                                           key='mpi3d_loader', tag=tag, flipaug='_flip')
-    return h36m_p1, h36m_p2, dhp_p1, dhp_p2
+        # dhp_p1, dhp_p2 = evaluate(data_dict['mpi3d_loader'], model_pos_eval, device, summary, writer,
+        #                                    key='mpi3d_loader', tag=tag, flipaug='_flip')
+    return h36m_p1, h36m_p2#, dhp_p1, dhp_p2
 

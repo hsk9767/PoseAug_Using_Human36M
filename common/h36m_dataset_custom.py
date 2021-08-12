@@ -5,7 +5,7 @@ import numpy as np
 import cv2
 import random
 import json
-from utils.data_utils import world2cam, cam2pixel, pixel2cam, process_bbox
+from utils.data_utils import world2cam, cam2pixel, pixel2cam, process_bbox, cam2pixel_custom
 
 class Human36M:
     def __init__(self, data_split):
@@ -18,8 +18,8 @@ class Human36M:
         # self.joints_name = ('Pelvis', 'R_Hip', 'R_Knee', 'R_Ankle', 'L_Hip', 'L_Knee', 'L_Ankle', 'Torso', 'Neck', 'Nose', 'Head', 'L_Shoulder', 'L_Elbow', 'L_Wrist', 'R_Shoulder', 'R_Elbow', 'R_Wrist', 'Thorax')
         self.joints_name = ('Pelvis', 'R_Hip', 'R_Knee', 'R_Ankle', 'L_Hip', 'L_Knee', 'L_Ankle', 'Torso', 'Head', 'L_Shoulder', 'L_Elbow', 'L_Wrist', 'R_Shoulder', 'R_Elbow', 'R_Wrist', 'Thorax')
         self.flip_pairs = ( (1, 4), (2, 5), (3, 6), (12, 9), (13, 10), (14, 11) )
-        # self.skeleton = ( (0, 7), (7, 8), (8, 9), (9, 10), (8, 11), (11, 12), (12, 13), (8, 14), (14, 15), (15, 16), (0, 1), (1, 2), (2, 3), (0, 4), (4, 5), (5, 6) )
-        self.skeleton = ( (0, 7), (9, 10), (10, 11), (12, 13), (13, 14), (0, 1), (1, 2), (2, 3), (0, 4), (4, 5), (5, 6), (15, 9), (15, 12), (15, 8), (15, 7) )
+        self.skeleton = ( (0, 7), (7, 8), (8, 9), (9, 10), (8, 11), (11, 12), (12, 13), (8, 14), (14, 15), (15, 16), (0, 1), (1, 2), (2, 3), (0, 4), (4, 5), (5, 6) )
+        # self.skeleton = ( (0, 7), (9, 10), (10, 11), (12, 13), (13, 14), (0, 1), (1, 2), (2, 3), (0, 4), (4, 5), (5, 6), (15, 9), (15, 12), (15, 8), (15, 7) )
         self.joints_have_depth = True
         # self.eval_joint = (0, 1, 2, 3, 4, 5, 6, 7, 8, 9,  10, 11, 12, 13, 14, 15, 16) # exclude Thorax
         self.eval_joint = (0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15) # exclude nose and neck
@@ -27,8 +27,8 @@ class Human36M:
 
         self.action_name = ['Directions', 'Discussion', 'Eating', 'Greeting', 'Phoning', 'Posing', 'Purchases', 'Sitting', 'SittingDown', 'Smoking', 'Photo', 'Waiting', 'Walking', 'WalkDog', 'WalkTogether']
         self.root_idx = self.joints_name.index('Pelvis')
-        self.lshoulder_idx = self.joints_name.index('L_Shoulder')
-        self.rshoulder_idx = self.joints_name.index('R_Shoulder')
+        self.lshoulder_idx = 11
+        self.rshoulder_idx = 14
         self.protocol = 2
         self.data = self.load_data()
 
@@ -126,7 +126,8 @@ class Human36M:
             joint_world = np.array(joints[str(subject)][str(action_idx)][str(subaction_idx)][str(frame_idx)], dtype=np.float32)
             joint_world = self.add_thorax(joint_world)
             joint_cam = world2cam(joint_world, R, t)
-            joint_img = cam2pixel(joint_cam, f, c)
+            # joint_img = cam2pixel(joint_cam, f, c)
+            joint_img = cam2pixel_custom(joint_cam, f, c)
             joint_img[:,2] = joint_img[:,2] - joint_cam[self.root_idx,2]
             joint_vis = np.ones((self.joint_num,1))
             
@@ -138,6 +139,8 @@ class Human36M:
             joint_cam = joint_cam[self.joint_select]
             
             data.append({
+                'img_width' : img_width,
+                'img_height' : img_height,
                 'img_path': img_path,
                 'img_id': image_id,
                 'bbox': bbox,
@@ -147,7 +150,7 @@ class Human36M:
                 'root_cam': root_cam, # [X, Y, Z] in camera coordinate
                 'f': f,
                 'c': c})
-           
+        
         return data
 
     def evaluate(self, preds, result_dir):

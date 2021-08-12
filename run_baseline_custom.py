@@ -78,7 +78,7 @@ def main(args):
             epoch_loss, lr_now, glob_step = train(data_dict['train_loader'], model_pos, criterion, optimizer, device, args.lr, lr_now,
                                                     glob_step, args.lr_decay, args.lr_gamma, args.keypoints, max_norm=args.max_norm)
             # eval
-            error_h36m_p1, error_h36m_p2 = evaluate(data_dict['valid_loader'], model_pos, device, args.keypoints)
+            error_h36m_p1, error_h36m_p2 = evaluate(data_dict['valid_loader'], model_pos, device, args.keypoints, flipaug = True)
         else:
             # train
             epoch_loss, lr_now, glob_step = train(data_dict['train_loader'], model_pos, criterion, optimizer, device, args.lr, lr_now,

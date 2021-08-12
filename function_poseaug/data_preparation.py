@@ -47,9 +47,9 @@ def data_preparation(args):
     # general 2D-3D pair dataset
     ############################################
     poses_train, poses_train_2d, actions_train, cams_train = fetch(subjects_train, dataset, keypoints, action_filter,
-                                                                   stride)
+                                                        stride)
     poses_valid, poses_valid_2d, actions_valid, cams_valid = fetch(subjects_test, dataset, keypoints, action_filter,
-                                                                   stride)
+                                                        stride)
     # prepare train loader for detected 2D.
     train_det2d3d_loader = DataLoader(PoseDataSet(poses_train, poses_train_2d, actions_train, cams_train),
                                       batch_size=args.batch_size,

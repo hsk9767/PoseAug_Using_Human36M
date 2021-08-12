@@ -56,7 +56,7 @@ def train(data_loader, model_pos, criterion, optimizer, device, lr_init, lr_now,
         num_poses = joint_cam.size(0)
 
         step += 1
-        if step % decay == 0 or step == 1:
+        if (step % decay == 0 or step == 1) and (lr_now >= 1e-6):
             lr_now = lr_decay(optimizer, step, lr_init, decay, gamma)
 
         joint_img, joint_cam = joint_img.to(device), joint_cam.to(device)
