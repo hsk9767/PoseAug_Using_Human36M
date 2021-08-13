@@ -45,7 +45,7 @@ def main(args):
     if args.keypoints != 'gt':
         error_h36m_p1, error_h36m_p2 = evaluate(data_dict['valid_loader'], model_pos, device, args.keypoints, estimator_2d=estimator_2d)
     else:
-        error_h36m_p1, error_h36m_p2 = evaluate(data_dict['valid_loader'], model_pos, device, args.keypoints)
+        error_h36m_p1, error_h36m_p2 = evaluate(data_dict['valid_loader'], model_pos, device, args.keypoints, flipaug=False)
     
     print('H36M: Protocol #1   (MPJPE) overall average: {:.2f} (mm)'.format(error_h36m_p1))
     print('H36M: Protocol #2 (P-MPJPE) overall average: {:.2f} (mm)'.format(error_h36m_p2))

@@ -82,7 +82,7 @@ def evaluate(data_loader, model_pos_eval, device, type_2d, estimator_2d=None, su
         outputs_3d = outputs_3d[:, :, :] - outputs_3d[:, :1, :]
         
         # compute p1 and p2
-        p1score = mpjpe(outputs_3d[:, :-1, :], targets_3d[:, :-1, :]).item() * 1000.0
+        p1score = mpjpe(outputs_3d[:, :, :], targets_3d[:, :, :]).item() * 1000.0
         epoch_p1.update(p1score, num_poses)
         p2score = p_mpjpe(outputs_3d.numpy(), targets_3d.numpy()).item() * 1000.0
         epoch_p2.update(p2score, num_poses)
