@@ -90,6 +90,13 @@ def cam2pixel(cam_coord, f, c):
     img_coord = np.concatenate((x[:,None], y[:,None], z[:,None]),1)
     return img_coord
 
+def cam2pixel_custom(cam_coord, f, c):
+    x = np.clip(cam_coord[:, 0] / (cam_coord[:, 2] + 1e-8), -1, 1) * f[0] + c[0]
+    y = np.clip(cam_coord[:, 1] / (cam_coord[:, 2] + 1e-8), -1, 1) * f[1] + c[1]
+    z = cam_coord[:, 2]
+    img_coord = np.concatenate((x[:,None], y[:,None], z[:,None]),1)
+    return img_coord
+
 def pixel2cam(pixel_coord, f, c):
     x = (pixel_coord[:, 0] - c[0]) / f[0] * pixel_coord[:, 2]
     y = (pixel_coord[:, 1] - c[1]) / f[1] * pixel_coord[:, 2]

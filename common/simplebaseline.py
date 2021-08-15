@@ -10,7 +10,6 @@ def get_resnet(args):
             'opts' : None}
     update_config(cfg, dict_)
     model = get_resnet_model(cfg, is_train=False)
-    model.load_state_dict(torch.load(args.path_2d, map_location='cpu'))
     
     return model.eval().cuda()
     

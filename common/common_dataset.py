@@ -6,12 +6,13 @@ import torch
 import copy
 import math
 from torch.utils.data.dataset import Dataset
+from data_extra.dataset_converter import COCO2HUMAN, MPII2HUMAN
 
 input_shape = (256, 256) 
 bbox_3d_shape = (2000, 2000, 2000)
 
 class DatasetLoader(Dataset):
-    def __init__(self, db, ref_joints_name, is_train, transform):
+    def __init__(self, db, ref_joints_name, is_train, transform, detection_2d=False):
         
         self.db = db.data
         self.joint_num = db.joint_num
@@ -28,20 +29,23 @@ class DatasetLoader(Dataset):
             self.do_augment = True
         else:
             self.do_augment = False
+        
+        # to save 2D keypoints
+        if detection_2d:
+            self.bbox_output = True
+        else:
+            self.bbox_output = False
 
     def __getitem__(self, index):
         
-        joint_num = self.joint_num
-        skeleton = self.skeleton
-        flip_pairs = self.flip_pairs
         joints_have_depth = self.joints_have_depth
-
         data = copy.deepcopy(self.db[index])
 
-        bbox = data['bbox']
+        bbox = data['bbox'] # top_left_x, top_left_y, width, height
         joint_img = data['joint_img']
         joint_cam = data['joint_cam']
         joint_vis = data['joint_vis']
+        img_width, img_height = data['img_width'], data['img_height']
         
         # 1. load image
         cvimg = cv2.imread(data['img_path'], cv2.IMREAD_COLOR | cv2.IMREAD_IGNORE_ORIENTATION)
@@ -82,13 +86,16 @@ class DatasetLoader(Dataset):
         joint_vis = (joint_vis > 0).astype(np.float32)
         joints_have_depth = np.array([joints_have_depth]).astype(np.float32)
 
-        return img_patch, joint_img, joint_cam, joint_vis
+        if not self.bbox_output:
+            return img_patch, joint_img, joint_cam, joint_vis
+        else:
+            return img_patch, joint_img, joint_cam, joint_vis, bbox, img_width, img_height
     
     def __len__(self):
         return len(self.db)
     
 class DatasetLoader_only_lifting(Dataset):
-    def __init__(self, db, ref_joints_name, is_train, transform):
+    def __init__(self, db, ref_joints_name, is_train, transform, path_2d=None, keypoints=None):
         
         self.db = db.data
         self.joint_num = db.joint_num
@@ -107,6 +114,21 @@ class DatasetLoader_only_lifting(Dataset):
             self.do_augment = False
         self.joints_left = [4, 5, 6, 9, 10, 11]
         self.joints_right = [1, 2, 3, 12, 13, 14]
+        
+        # use the .npz file
+        self.keypoints = keypoints
+        if self.keypoints != 'gt':
+            train_path = self.keypoints + '_train.npz'
+            valid_path = self.keypoints + '_valid.npz'
+            if self.is_train:
+                path_2d = train_path
+            else:
+                path_2d = valid_path
+            keypoints_2d = np.load(path_2d)
+            x_2d = np.expand_dims(keypoints_2d['x'], 2)
+            y_2d = np.expand_dims(keypoints_2d['y'], 2)
+            self.keypoints_2d = np.concatenate([x_2d, y_2d], 2)
+            assert len(self.keypoints) != len(self.db)
 
     def __getitem__(self, index):
         
@@ -121,53 +143,21 @@ class DatasetLoader_only_lifting(Dataset):
         joint_img = data['joint_img']
         joint_cam = data['joint_cam']
         joint_vis = data['joint_vis']
-        
-        # scale, rot, do_flip, color_scale, do_occlusion = 1.0, 0.0, (0.5 >= torch.rand(1)), [1.0, 1.0, 1.0], False
-        # bb_c_x = float(bbox[0] + 0.5*bbox[2])
-        # bb_c_y = float(bbox[1] + 0.5*bbox[3])
-        # bb_width = float(bbox[2])
-        # bb_height = float(bbox[3])
-        # trans = gen_trans_from_patch_cv(bb_c_x, bb_c_y, bb_width, bb_height, input_shape[1], input_shape[0], scale, rot, inv=False)
-        
-        # joint_img in image plane to bbox plane
-        # for i in range(len(joint_img)):
-        #     joint_img[i, 0:2] = trans_point2d(joint_img[i, 0:2], trans)
-        #     joint_img[i, 2] /= (2000/2.) # expect depth lies in -bbox_3d_shape[0]/2 ~ bbox_3d_shape[0]/2 -> -1.0 ~ 1.0
-        #     joint_img[i, 2] = (joint_img[i,2] + 1.0)/2. # 0~1 normalize
-        #     joint_vis[i] *= (
-        #                     (joint_img[i,0] >= 0) & \
-        #                     (joint_img[i,0] < input_shape[1]) & \
-        #                     (joint_img[i,1] >= 0) & \
-        #                     (joint_img[i,1] < input_shape[0]) & \
-        #                     (joint_img[i,2] >= 0) & \
-        #                     (joint_img[i,2] < 1)
-        #                     )
-        # normalize [-1, 1], because the 2D keypoints are input of the lifting network
-        joint_img = joint_img[:, :2]
-        # joint_img = normalize_screen_coordinates(joint_img, input_shape[0], input_shape[1])
-        # joint_img = normalize_screen_coordinates(joint_img, bb_width, bb_height)
-        img_height, img_width = data['img_height'], data['img_width']
+
         # normalize
+        joint_img = joint_img[:, :2]
+        img_height, img_width = data['img_height'], data['img_width']
         joint_img = normalize_screen_coordinates(joint_img, img_width, img_height)
-        # anostic to position within the frame
-        # joint_img -= joint_img[:1, :]
-        
-        # assert (joint_img[:,0].max() >= -1.) and (joint_img[:,0].min() <= 1.) and (joint_img[:,0].min() >= -1.) and (joint_img[:,1].max() <= 1.)
-        
+
         ## to meter unit
         joint_cam = joint_cam / 1000.
         
+        # not GT(2D)
+        if self.keypoints == 'pelee':
+            joint_img = COCO2HUMAN(self.keypoints_2d[index]) # already normalized
+        elif self.keypoints == 'resnet':
+            joint_img = MPII2HUMAN(self.keypoints_2d[index]) # already normalized
         
-        #do_flip
-        # if do_flip:
-        #     joint_img[:, 0] *= -1.
-        #     joint_img[self.joints_left + self.joints_right, :] = joint_img[self.joints_right + self.joints_left, :]
-            
-        #     joint_cam -= joint_cam[:1, :]
-        #     joint_cam *= -1.
-        #     joint_cam[self.joints_left + self.joints_right, :] = joint_cam[self.joints_right + self.joints_left, :]
-        
-        # img_patch = self.transform(img_patch)
         joint_img = joint_img.astype(np.float32)
         joint_cam = joint_cam.astype(np.float32)
         joint_vis = (joint_vis > 0).astype(np.float32)

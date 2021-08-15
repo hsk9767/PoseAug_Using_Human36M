@@ -9,6 +9,7 @@ from utils.data_utils import world2cam, cam2pixel, pixel2cam, process_bbox, cam2
 
 class Human36M:
     def __init__(self, data_split):
+        print(f'{data_split} dataset is being loaded..')
         self.data_split = data_split
         self.img_dir = osp.join('./data/Human3.6M/images')
         self.annot_path = osp.join('./data/Human3.6M/annotations')

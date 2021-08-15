@@ -20,6 +20,8 @@ def get_parse_args():
                         type=str, help='where the cfg of the model(simplebaseline-resnet50) is taken from')
     parser.add_argument('--hrnet32', default='hrnet_simplebaseline/experiments/mpii/hrnet/w32_256x256_adam_lr1e-3.yaml', 
                         type=str, help='where the cfg of the model(hrnet-32) is taken from')
+    parser.add_argument('--saved_2d', default='resnet.npz', type=str, help='results of 2D pose estimation network about Human3.6M')
+    parser.add_argument('--is_train', default=True, type=lambda x: (str(x).lower() == 'true'), help='train_or_valid')
     
     
     # Evaluate choice
@@ -35,11 +37,11 @@ def get_parse_args():
     # Training detail
     parser.add_argument('--batch_size', default=64, type=int, metavar='N',
                         help='batch size in terms of predicted frames')
-    parser.add_argument('--epochs', default=50, type=int, metavar='N', help='number of training epochs')
+    parser.add_argument('--epochs', default=200, type=int, metavar='N', help='number of training epochs')
 
     # Learning rate
     parser.add_argument('--lr', default=1.0e-3, type=float, metavar='LR', help='initial learning rate')
-    parser.add_argument('--lr_decay', type=int, default=500, help='num of steps of learning rate decay')
+    parser.add_argument('--lr_decay', type=int, default=3000, help='num of steps of learning rate decay')
     parser.add_argument('--lr_gamma', type=float, default=0.96, help='gamma of learning rate decay')
     parser.add_argument('--no_max', dest='max_norm', action='store_false', help='if use max_norm clip on grad')
     parser.set_defaults(max_norm=True)
