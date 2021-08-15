@@ -47,9 +47,10 @@ class Data_Custom(object):
         if self.is_train:
             # unless 2D pose estimation network inferencing
             if not use_gt:
+                
                 train_dataset_3d = DatasetLoader_only_lifting(eval('Human36M')('train'), ref_joints_name=None, is_train=True, transform=transforms.Compose([\
                                                                                                                     transforms.ToTensor(),
-                                                                                                                    transforms.Normalize(mean=pixel_mean, std=pixel_std)]), path_2d=args.saved_2d, keypoints=args.keypoints)
+                                                                                                                    transforms.Normalize(mean=pixel_mean, std=pixel_std)]), keypoints=args.keypoints)
             else:
                 train_dataset_3d = DatasetLoader_only_lifting(eval('Human36M')('train'), ref_joints_name=None, is_train=True, transform=transforms.Compose([\
                                                                                                                     transforms.ToTensor(),
@@ -60,7 +61,7 @@ class Data_Custom(object):
         if not use_gt:
             valid_dataset_3d = DatasetLoader_only_lifting(eval('Human36M')('test'), ref_joints_name=None, is_train=False, transform=transforms.Compose([\
                                                                                                             transforms.ToTensor(),
-                                                                                                                    transforms.Normalize(mean=pixel_mean, std=pixel_std)]), path_2d=args.saved_2d_valid, keypoints=args.keypoints)
+                                                                                                                    transforms.Normalize(mean=pixel_mean, std=pixel_std)]), keypoints=args.keypoints)
         else:
             valid_dataset_3d = DatasetLoader_only_lifting(eval('Human36M')('test'), ref_joints_name=None, is_train=False, transform=transforms.Compose([\
                                                                                                             transforms.ToTensor(),
