@@ -9,7 +9,7 @@ Do 'PoseAug'(CVPR 2021) with the Human3.6M dataset loaded by [Moon](https://gith
 python3 run_baseline_custom.py --note pretrain --lr 1e-3 --posenet_name 'videopose' --checkpoint './checkpoint/pretrain_baseline' --keypoints gt
 # mlp
 python3 run_baseline_custom.py --note pretrain --lr 1e-3 --stages 2 --posenet_name 'mlp' --checkpoint './checkpoint/pretrain_baseline' --keypoints gt
-python3 run_baseline_custom.py --note resnet --lr 1e-3 --stages 2 --posenet_name mlp --checkpoint ./checkpoint/pretrain_resnet --keypoints resnet --path_2d pose_resnet_50_256x256.pth.tar
+python3 run_baseline_custom.py --note resnet --checkpoint ./checkpoint/pretrain_baseline/ --posent_name mlp --sttages 2 --keypoints resnet 
 # st-gcn
 python3 run_baseline_custom.py --note pretrain --dropout -1 --lr 1e-3 --posenet_name 'stgcn' --checkpoint './checkpoint/pretrain_baseline' --keypoints gt
 ``` 
