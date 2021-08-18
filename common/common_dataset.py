@@ -9,6 +9,7 @@ from torch.utils.data.dataset import Dataset
 from data_extra.dataset_converter import COCO2HUMAN, MPII2HUMAN
 
 input_shape = (256, 256) 
+output_shape = (64, 64)
 bbox_3d_shape = (2000, 2000, 2000)
 
 class DatasetLoader(Dataset):
@@ -81,7 +82,7 @@ class DatasetLoader(Dataset):
         joint_cam = joint_cam / 1000.
         
         img_patch = self.transform(img_patch)
-        joint_img = joint_img.astype(np.float32)
+        joint_img = joint_img.astype(np.float32) * output_shape[0] / input_shape[0]
         joint_cam = joint_cam.astype(np.float32)
         joint_vis = (joint_vis > 0).astype(np.float32)
         joints_have_depth = np.array([joints_have_depth]).astype(np.float32)
