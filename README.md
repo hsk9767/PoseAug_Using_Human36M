@@ -2,7 +2,7 @@ Do train the lifting network [Simple](https://github.com/una-dinosauria/3d-pose-
 
 
 ## Tree
-Follow the instructions in link(https://github.com/mks0601/3DMPPE_POSENET_RELEASE/tree/3f92ebaef214a0eb1574b7265e836456fbf3508a#data) to make the 'Human3.6M' folder and put it under the data directory
+Follow the instructions in [link](https://github.com/mks0601/3DMPPE_POSENET_RELEASE/tree/3f92ebaef214a0eb1574b7265e836456fbf3508a#data) to make the 'Human3.6M' folder and put it under the data directory
 ```sh
 $ PoseAug_Human36M
 | -- ...
