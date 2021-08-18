@@ -37,7 +37,7 @@ peleenet
 16 : right_ankle
 '''
 
-def train(data_loader, model_pos, criterion, optimizer, device, lr_init, lr_now, step, decay, gamma, type_2d, max_norm=True, estimator_2d=None):
+def train(data_loader, model_pos, criterion, optimizer, device, lr_init, lr_now, step, decay, gamma, max_norm=True):
     batch_time = AverageMeter()
     data_time = AverageMeter()
     epoch_loss_3d_pos = AverageMeter()
@@ -49,7 +49,7 @@ def train(data_loader, model_pos, criterion, optimizer, device, lr_init, lr_now,
 
     bar = Bar('Train', max=len(data_loader))
     # for i, (targets_3d, inputs_2d, _, _) in enumerate(data_loader):
-    for i, (img_patch, joint_img, joint_cam, joint_vis) in enumerate(data_loader):
+    for i, (joint_img, joint_cam, joint_vis) in enumerate(data_loader):
         
         # Measure data loading time
         data_time.update(time.time() - end)
@@ -62,27 +62,7 @@ def train(data_loader, model_pos, criterion, optimizer, device, lr_init, lr_now,
         joint_img, joint_cam = joint_img.to(device), joint_cam.to(device)
         targets_3d = joint_cam[:, :, :] - joint_cam[:, :1, :]  # the output is relative to the 0th joint
         
-        if type_2d == 'gt':
-            inputs_2d = joint_img[:, :, :2]
-        else:
-            assert estimator_2d is not None
-            with torch.no_grad():
-                img_patch = img_patch.to(device)
-                heatmaps_2d = estimator_2d(img_patch)
-                B, C, H, W = heatmaps_2d.shape
-                heatmaps_2d = heatmaps_2d.view((B, C, -1)).contiguous()
-                heatmap_max = heatmaps_2d.max(dim=-1)[1]
-                x_points = heatmap_max % W; y_points = heatmap_max // W
-                width_ratio = img_patch.shape[3] / W; height_ratio = img_patch.shape[2]
-                keypoints_2d = torch.cat([x_points.unsqueeze(2) * width_ratio , y_points.unsqueeze(2) * height_ratio], dim=2)
-                if type_2d == 'pelee':
-                    inputs_2d = COCO2HUMAN(keypoints_2d).cuda()
-                elif type_2d == 'resnet':
-                    inputs_2d = MPII2HUMAN(keypoints_2d).cuda()
-                else:
-                    raise NotImplementedError("Corresponding network is not supported")
-                        
-
+        inputs_2d = joint_img[:, :, :2]
         outputs_3d = model_pos(inputs_2d)
 
         optimizer.zero_grad()

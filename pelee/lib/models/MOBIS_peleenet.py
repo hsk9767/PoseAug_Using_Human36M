@@ -163,7 +163,7 @@ class PeleeNet(nn.Module):
 
         self.final_layer = nn.Conv2d(
             in_channels=128,
-            out_channels=17,
+            out_channels=nof_joints,
             kernel_size=1,
             padding=0
         )
@@ -237,7 +237,7 @@ class PeleeNet(nn.Module):
 def get_pose_pelee_net(is_train, **kwargs):
     if is_train:
         print(">>Peleenet Start")
-        model = PeleeNet()
+        model = PeleeNet(nof_joints=16)
         model.init_weights('./peleenet.pth')
     else:
         model = PeleeNet()

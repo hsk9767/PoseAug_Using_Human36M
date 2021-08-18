@@ -9,7 +9,7 @@ from utils.data_utils import world2cam, cam2pixel, pixel2cam, process_bbox, cam2
 
 class Human36M:
     def __init__(self, data_split):
-        print(f'{data_split} dataset is being loaded..')
+        print(f'==> {data_split} dataset is being loaded..')
         self.data_split = data_split
         self.img_dir = osp.join('./data/Human3.6M/images')
         self.annot_path = osp.join('./data/Human3.6M/annotations')
@@ -64,7 +64,7 @@ class Human36M:
         return joint_coord
 
     def load_data(self):
-        print('Load data of H36M Protocol ' + str(self.protocol))
+        print('==> Load data of H36M Protocol ' + str(self.protocol))
 
         subject_list = self.get_subject()
         sampling_ratio = self.get_subsampling_ratio()
@@ -100,7 +100,7 @@ class Human36M:
         #     for i in range(len(annot)):
         #         bbox_root_result[str(annot[i]['image_id'])] = {'bbox': np.array(annot[i]['bbox']), 'root': np.array(annot[i]['root_cam'])}
         # else:
-        print("Get bounding box and root from groundtruth")
+        print("==> Get bounding box and root from groundtruth")
 
         data = []
         for aid in db.anns.keys():

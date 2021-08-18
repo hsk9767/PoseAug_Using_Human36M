@@ -12,8 +12,9 @@ pixel_mean = (0.485, 0.456, 0.406)
 pixel_std = (0.229, 0.224, 0.225)
 
 class Data_Custom(object):
-    def __init__(self, is_train=True, detection_2d = False):
+    def __init__(self, is_train=True, with_valid = False, detection_2d = False):
         super().__init__()
+        self.with_valid = with_valid
         self.is_train = is_train
         self.detection_2d_save = detection_2d
         
@@ -36,36 +37,33 @@ class Data_Custom(object):
                                                                                                                         transforms.Normalize(mean=pixel_mean, std=pixel_std)]), detection_2d=True)
             else:
                 dataset_3d = DatasetLoader(eval('Human36M')('test'), ref_joints_name=None, is_train=False, transform=transforms.Compose([\
-                                                                                                                        transforms.ToTensor(),
-                                                                                                                        transforms.Normalize(mean=pixel_mean, std=pixel_std)]), detection_2d=True)
+                                                                                                                        transforms.ToTensor()
+                                                                                                                        , transforms.Normalize(mean=pixel_mean, std=pixel_std)]), detection_2d=True)
                 
-            loader = DataLoader(dataset_3d, batch_size=args.batch_size, shuffle=False, num_workers=args.num_workers, pin_memory=True)
-            return loader
+            train_loader = DataLoader(dataset_3d, batch_size=args.batch_size, shuffle=True, num_workers=args.num_workers, pin_memory=True)
+            if self.with_valid:
+                valid_dataset_3d = DatasetLoader(eval('Human36M')('test'), ref_joints_name=None, is_train=False, transform=transforms.Compose([\
+                                                                                                                        transforms.ToTensor()
+                                                                                                                        , transforms.Normalize(mean=pixel_mean, std=pixel_std)]), detection_2d=True)
+                valid_loader = DataLoader(valid_dataset_3d, batch_size=args.batch_size, shuffle=False, num_workers=args.num_workers, pin_memory=True)
+                return {
+                    'train_loader' : train_loader,
+                    'valid_loader' : valid_loader
+                }
+            return train_loader
             
-        
-        # train -> train loader & valid loader
+        # train -> train loader & valid loader , valid -> None & valid_laoder
         if self.is_train:
-            # unless 2D pose estimation network inferencing
-            if not use_gt:
-                
-                train_dataset_3d = DatasetLoader_only_lifting(eval('Human36M')('train'), ref_joints_name=None, is_train=True, transform=transforms.Compose([\
+            train_dataset_3d = DatasetLoader_only_lifting(eval('Human36M')('train'), ref_joints_name=None, is_train=True, transform=transforms.Compose([\
                                                                                                                     transforms.ToTensor(),
                                                                                                                     transforms.Normalize(mean=pixel_mean, std=pixel_std)]), keypoints=args.keypoints)
-            else:
-                train_dataset_3d = DatasetLoader_only_lifting(eval('Human36M')('train'), ref_joints_name=None, is_train=True, transform=transforms.Compose([\
-                                                                                                                    transforms.ToTensor(),
-                                                                                                                    transforms.Normalize(mean=pixel_mean, std=pixel_std)]))
         else:
             train_dataset_3d = None
         
-        if not use_gt:
-            valid_dataset_3d = DatasetLoader_only_lifting(eval('Human36M')('test'), ref_joints_name=None, is_train=False, transform=transforms.Compose([\
+        valid_dataset_3d = DatasetLoader_only_lifting(eval('Human36M')('test'), ref_joints_name=None, is_train=False, transform=transforms.Compose([\
                                                                                                             transforms.ToTensor(),
                                                                                                                     transforms.Normalize(mean=pixel_mean, std=pixel_std)]), keypoints=args.keypoints)
-        else:
-            valid_dataset_3d = DatasetLoader_only_lifting(eval('Human36M')('test'), ref_joints_name=None, is_train=False, transform=transforms.Compose([\
-                                                                                                            transforms.ToTensor(),
-                                                                                                                    transforms.Normalize(mean=pixel_mean, std=pixel_std)]))
+
         if self.is_train:
             train_loader = DataLoader(train_dataset_3d, batch_size=args.batch_size, shuffle=True, num_workers=args.num_workers, pin_memory=True)
         else:

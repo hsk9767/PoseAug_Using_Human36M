@@ -41,14 +41,6 @@ def main(args):
     print("==> Creating PoseNet model...")
     model_pos = model_pos_preparation(args, device)
     
-    if args.keypoints == 'pelee':
-        print("==> Creating 2D pose estimation model...")
-        estimator_2d = get_pose_pelee_net(is_train=False).cuda().eval()
-        estimator_2d.load_state_dict(torch.load(args.path_2d, map_location='cpu'))
-    elif args.keypoints == 'resnet':
-        print("==> Creating 2D pose estimation model...")
-        estimator_2d = get_resnet(args) # already in cuda, eval
-    
     print("==> Prepare optimizer...")
     criterion = nn.MSELoss(reduction='mean').to(device)
     optimizer = torch.optim.Adam(model_pos.parameters(), lr=args.lr)
@@ -73,25 +65,12 @@ def main(args):
         print('\nEpoch: %d | LR: %.8f' % (epoch + 1, lr_now))
 
         # Train for one epoch
-        if args.keypoints == 'gt':
-            # train
-            epoch_loss, lr_now, glob_step = train(data_dict['train_loader'], model_pos, criterion, optimizer, device, args.lr, lr_now,
-                                                    glob_step, args.lr_decay, args.lr_gamma, args.keypoints, max_norm=args.max_norm)
-            # eval
-            error_h36m_p1, error_h36m_p2 = evaluate(data_dict['valid_loader'], model_pos, device, args.keypoints, flipaug = True)
-        else:
-            # train
-            epoch_loss, lr_now, glob_step = train(data_dict['train_loader'], model_pos, criterion, optimizer, device, args.lr, lr_now,
-                                                    glob_step, args.lr_decay, args.lr_gamma, args.keypoints, max_norm=args.max_norm, estimator_2d=estimator_2d)
-            # eval
-            error_h36m_p1, error_h36m_p2 = evaluate(data_dict['valid_loader'], model_pos, device, args.keypoints, estimator_2d=estimator_2d)
+        # train
+        epoch_loss, lr_now, glob_step = train(data_dict['train_loader'], model_pos, criterion, optimizer, device, args.lr, lr_now,
+                                                glob_step, args.lr_decay, args.lr_gamma, max_norm=args.max_norm)
+        # eval
+        error_h36m_p1, error_h36m_p2 = evaluate(data_dict['valid_loader'], model_pos, device)
 
-        # Evaluate
-        # error_h36m_p1, error_h36m_p2 = evaluate(data_dict['valid_loader'], model_pos, device, args.keypoints)
-        # error_3dhp_p1, error_3dhp_p2 = evaluate(data_dict['3DHP_test'], model_pos, device, flipaug='_flip')
-
-        # Update log file
-        # logger.append([epoch + 1, lr_now, epoch_loss, error_h36m_p1, error_h36m_p2, error_3dhp_p1, error_3dhp_p2])
         logger.append([epoch + 1, lr_now, epoch_loss, error_h36m_p1, error_h36m_p2])
 
         # Update checkpoint

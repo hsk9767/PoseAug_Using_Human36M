@@ -14,10 +14,12 @@ from function_baseline.data_preparation_custom import Data_Custom
 from function_baseline.model_pos_preparation import model_pos_preparation
 from function_poseaug.model_pos_eval_custom import evaluate
 from pelee.lib.models.MOBIS_peleenet import get_pose_pelee_net
+from common import get_resnet
+from data_extra.dataset_converter import COCO2HUMAN, MPII2HUMAN
 # from function_poseaug.model_pos_eval import evaluate
 
 
-def main(args):
+def main(args):    
     print('==> Using settings {}'.format(args))
     stride = args.downsample
     cudnn.benchmark = True
@@ -28,11 +30,6 @@ def main(args):
     data_dict = data_class.data_preparation(args)
     print("==> Creating model...")
     model_pos = model_pos_preparation(args, device).cuda()
-    
-    if args.keypoints != 'gt':
-        print("==> Creating 2D pose estimation model...")
-        estimator_2d = get_pose_pelee_net(is_train=False).cuda().eval()
-        estimator_2d.load_state_dict(torch.load(args.path_2d, map_location='cpu'))
 
     # Check if evaluate checkpoint file exist:
     assert path.isfile(args.evaluate), '==> No checkpoint found at {}'.format(args.evaluate)
@@ -41,12 +38,8 @@ def main(args):
     model_pos.load_state_dict(ckpt['state_dict'])
 
     print('==> Evaluating...')
-
-    if args.keypoints != 'gt':
-        error_h36m_p1, error_h36m_p2 = evaluate(data_dict['valid_loader'], model_pos, device, args.keypoints, estimator_2d=estimator_2d)
-    else:
-        error_h36m_p1, error_h36m_p2 = evaluate(data_dict['valid_loader'], model_pos, device, args.keypoints, flipaug=False)
     
+    error_h36m_p1, error_h36m_p2 = evaluate(data_dict['valid_loader'], model_pos, device, args.keypoints, flipaug=False)
     print('H36M: Protocol #1   (MPJPE) overall average: {:.2f} (mm)'.format(error_h36m_p1))
     print('H36M: Protocol #2 (P-MPJPE) overall average: {:.2f} (mm)'.format(error_h36m_p2))
 

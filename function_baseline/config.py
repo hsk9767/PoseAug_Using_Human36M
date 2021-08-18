@@ -24,6 +24,7 @@ def get_parse_args():
     parser.add_argument('--is_train', default=True, type=lambda x: (str(x).lower() == 'true'), help='train_or_valid')
     
     
+    
     # Evaluate choice
     parser.add_argument('--evaluate', default='', type=str, metavar='FILENAME',
                         help='checkpoint to evaluate (file name)')

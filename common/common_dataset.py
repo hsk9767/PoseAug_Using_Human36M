@@ -76,7 +76,7 @@ class DatasetLoader(Dataset):
         
         # normalize [-1, 1], because the 2D keypoints are input of the lifting network
         joint_img = joint_img[:, :2]
-        joint_img = normalize_screen_coordinates(joint_img, input_shape[0], input_shape[1])
+        # joint_img = normalize_screen_coordinates(joint_img, input_shape[0], input_shape[1])
         ## to meter unit
         joint_cam = joint_cam / 1000.
         
@@ -95,7 +95,7 @@ class DatasetLoader(Dataset):
         return len(self.db)
     
 class DatasetLoader_only_lifting(Dataset):
-    def __init__(self, db, ref_joints_name, is_train, transform, path_2d=None, keypoints=None):
+    def __init__(self, db, ref_joints_name, is_train, transform, keypoints='gt'):
         
         self.db = db.data
         self.joint_num = db.joint_num
@@ -129,12 +129,16 @@ class DatasetLoader_only_lifting(Dataset):
             y_2d = np.expand_dims(keypoints_2d['y'], 2)
             self.keypoints_2d = np.concatenate([x_2d, y_2d], 2)
             assert len(self.keypoints) != len(self.db)
+            
+            # not GT(2D)
+            if self.keypoints == 'pelee':
+                self.keypoints_2d = COCO2HUMAN(self.keypoints_2d) # already normalized
+            elif self.keypoints == 'resnet':
+                 self.keypoints_2d = MPII2HUMAN(self.keypoints_2d) # already normalized
+        
 
     def __getitem__(self, index):
         
-        joint_num = self.joint_num
-        skeleton = self.skeleton
-        flip_pairs = self.flip_pairs
         joints_have_depth = self.joints_have_depth
 
         data = copy.deepcopy(self.db[index])
@@ -147,23 +151,21 @@ class DatasetLoader_only_lifting(Dataset):
         # normalize
         joint_img = joint_img[:, :2]
         img_height, img_width = data['img_height'], data['img_width']
+        # if not gt
+        if self.keypoints != 'gt':
+            joint_img = self.keypoints_2d[index]
+        # normalize
         joint_img = normalize_screen_coordinates(joint_img, img_width, img_height)
 
         ## to meter unit
         joint_cam = joint_cam / 1000.
-        
-        # not GT(2D)
-        if self.keypoints == 'pelee':
-            joint_img = COCO2HUMAN(self.keypoints_2d[index]) # already normalized
-        elif self.keypoints == 'resnet':
-            joint_img = MPII2HUMAN(self.keypoints_2d[index]) # already normalized
         
         joint_img = joint_img.astype(np.float32)
         joint_cam = joint_cam.astype(np.float32)
         joint_vis = (joint_vis > 0).astype(np.float32)
         joints_have_depth = np.array([joints_have_depth]).astype(np.float32)
 
-        return [-1], joint_img, joint_cam, joint_vis
+        return joint_img, joint_cam, joint_vis
     
     def __len__(self):
         return len(self.db)
@@ -249,7 +251,59 @@ class DatasetLoader_only_inferencing(Dataset):
     def __len__(self):
         return len(self.db)
     
+
+class DatasetLoader_saved_test(Dataset):
+    def __init__(self, db, ref_joints_name, is_train, transform, detection_2d=False):
+        
+        self.db = db.data
+        self.joint_num = db.joint_num
+        self.skeleton = db.skeleton
+        self.flip_pairs = db.flip_pairs
+        self.joints_have_depth = db.joints_have_depth
+        self.joints_name = db.joints_name
+        self.ref_joints_name = ref_joints_name
+        
+        self.transform = transform
+        self.is_train = is_train
+
+        if self.is_train:
+            self.do_augment = True
+        else:
+            self.do_augment = False
+        
+        # to save 2D keypoints
+        if detection_2d:
+            self.bbox_output = True
+        else:
+            self.bbox_output = False
+
+    def __getitem__(self, index):
+        
+        joints_have_depth = self.joints_have_depth
+        data = copy.deepcopy(self.db[index])
+
+        bbox = data['bbox'] # top_left_x, top_left_y, width, height
+        joint_img = data['joint_img']
+        
+        img_width, img_height = data['img_width'], data['img_height']
+        
+        # 1. load image
+        cvimg = cv2.imread(data['img_path'], cv2.IMREAD_COLOR | cv2.IMREAD_IGNORE_ORIENTATION)
+        if not isinstance(cvimg, np.ndarray):
+            raise IOError("Fail to read %s" % data['img_path'])
+        img_height, img_width, img_channels = cvimg.shape
+
+        # normalize [-1, 1], because the 2D keypoints are input of the lifting network
+        joint_img = joint_img[:, :2]
+        ## to meter unit
+        
+        joint_img = joint_img.astype(np.float32)
+        joints_have_depth = np.array([joints_have_depth]).astype(np.float32)
+
+        return cvimg, joint_img, bbox, img_width, img_height
     
+    def __len__(self):
+        return len(self.db)
 # helper functions
 def get_aug_config():
     
@@ -311,7 +365,7 @@ def generate_patch_image(cvimg, bbox, do_flip, scale, rot, do_occlusion):
     img_patch = cv2.warpAffine(img, trans, (int(input_shape[1]), int(input_shape[0])), flags=cv2.INTER_LINEAR)
 
     img_patch = img_patch[:,:,::-1].copy()
-    img_patch = img_patch.astype(np.float32)
+    # img_patch = img_patch.astype(np.float32)
 
     return img_patch, trans
 

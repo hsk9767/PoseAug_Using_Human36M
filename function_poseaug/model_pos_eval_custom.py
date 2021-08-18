@@ -17,13 +17,11 @@ from data_extra.dataset_converter import COCO2HUMAN, MPII2HUMAN
 ####################################################################
 # ### evaluate p1 p2 pck auc dataset with test-flip-augmentation
 ####################################################################
-def evaluate(data_loader, model_pos_eval, device, type_2d, estimator_2d=None, summary=None, writer=None, key='', tag='', flipaug=''):
+def evaluate(data_loader, model_pos_eval, device, keypoints='gt', summary=None, writer=None, key='', tag='', flipaug=''):
     batch_time = AverageMeter()
     data_time = AverageMeter()
     epoch_p1 = AverageMeter()
     epoch_p2 = AverageMeter()
-    # epoch_auc = AverageMeter()
-    # epoch_pck = AverageMeter()
 
     # Switch to evaluate mode
     model_pos_eval.eval()
@@ -31,31 +29,12 @@ def evaluate(data_loader, model_pos_eval, device, type_2d, estimator_2d=None, su
 
     bar = Bar('Eval posenet on {}'.format(key), max=len(data_loader))
     for i, temp in enumerate(data_loader):
-        img_patch, joint_img, targets_3d = temp[0], temp[1], temp[2]
-        if type_2d == 'gt':
-            inputs_2d = joint_img[:, :, :2]
-        else:
-            assert estimator_2d is not None
-            with torch.no_grad():
-                img_patch = img_patch.to(device)
-                heatmaps_2d = estimator_2d(img_patch)
-                B, C, _, W = heatmaps_2d.shape
-                heatmaps_2d = heatmaps_2d.view((B, C, -1)).contiguous()
-                heatmap_max = heatmaps_2d.max(dim=-1)[1]
-                x_points = heatmap_max % W; y_points = heatmap_max // W
-                width_ratio = img_patch.shape[3] / W; height_ratio = img_patch.shape[2]
-                keypoints_2d = torch.cat([x_points.unsqueeze(2) * width_ratio , y_points.unsqueeze(2) * height_ratio], dim=2)
-                if type_2d == 'pelee':
-                    inputs_2d = COCO2HUMAN(keypoints_2d).cuda()
-                elif type_2d == 'resnet':
-                    inputs_2d = MPII2HUMAN(keypoints_2d).cuda()
-                else:
-                    raise NotImplementedError("Corresponding type is not supported")
+        joint_img, targets_3d = temp[0], temp[1]
         
         # Measure data loading time
         data_time.update(time.time() - end)
         num_poses = targets_3d.size(0)
-        inputs_2d = inputs_2d.to(device)
+        inputs_2d = joint_img[:, :, :2].to(device)
 
         with torch.no_grad():
             if flipaug:  # flip the 2D pose Left <-> Right
@@ -82,16 +61,19 @@ def evaluate(data_loader, model_pos_eval, device, type_2d, estimator_2d=None, su
         outputs_3d = outputs_3d[:, :, :] - outputs_3d[:, :1, :]
         
         # compute p1 and p2
-        p1score = mpjpe(outputs_3d[:, :, :], targets_3d[:, :, :]).item() * 1000.0
+        if keypoints == 'gt':
+            evaluate_joint = [0,1,2,3,4,5,6,7, 8, 9, 10, 11, 12, 13, 14] # w/o thorax
+        elif keypoints == 'resnet':
+            evaluate_joint = [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15] # w/o thorax & torso
+        elif keypoints == 'pelee':
+            evaluate_joint = [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15]
+        else:
+            raise NotImplementedError("Not supported type of 2D estimation network")
+        
+        p1score = mpjpe(outputs_3d[:, evaluate_joint ,:], targets_3d[:, evaluate_joint, :]).item() * 1000.0
         epoch_p1.update(p1score, num_poses)
         p2score = p_mpjpe(outputs_3d.numpy(), targets_3d.numpy()).item() * 1000.0
         epoch_p2.update(p2score, num_poses)
-
-        # compute AUC and PCK
-        # pck = compute_PCK(targets_3d.numpy(), outputs_3d.numpy())
-        # epoch_pck.update(pck, num_poses)
-        # auc = compute_AUC(targets_3d.numpy(), outputs_3d.numpy())
-        # epoch_auc.update(auc, num_poses)
 
         # Measure elapsed time
         batch_time.update(time.time() - end)
@@ -107,8 +89,6 @@ def evaluate(data_loader, model_pos_eval, device, type_2d, estimator_2d=None, su
     if writer:
         writer.add_scalar('posenet_{}'.format(key) + flipaug + '/p1score' + tag, epoch_p1.avg, summary.epoch)
         writer.add_scalar('posenet_{}'.format(key) + flipaug + '/p2score' + tag, epoch_p2.avg, summary.epoch)
-        # writer.add_scalar('posenet_{}'.format(key) + flipaug + '/_pck' + tag, epoch_pck.avg, summary.epoch)
-        # writer.add_scalar('posenet_{}'.format(key) + flipaug + '/_auc' + tag, epoch_auc.avg, summary.epoch)
 
     bar.finish()
     return epoch_p1.avg, epoch_p2.avg
