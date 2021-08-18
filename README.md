@@ -51,6 +51,7 @@ python run_2d_save_test.pt --keypoints resnet_152
 
 ## 2D estimation network finetune
 ```sh
+# finetune the 2D network to Human3.6M
 python run_finetune.py --keypoints resnet_50 --path_2d {PATH/TO/WEIGHT} --batch_size 128
 ```
 ## Acknowledgements
