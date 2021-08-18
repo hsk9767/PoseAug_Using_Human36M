@@ -30,10 +30,14 @@ python3 run_baseline_custom.py --note resnet --checkpoint ./checkpoint/pretrain_
 ## Run evaluation code
 ```sh
 python run_evaluate_custom.py --posenet_name mlp --keypoints gt --evaluate {PATH/TO/WEIGHT}
+python run_evaluate_custom.py --posenet_name mlp --keypoints pelee --evaluate {PATH/TO/WEIGHT}
+python run_evaluate_custom.py --posenet_name mlp --keypoints resnet_50 --evaluate {PATH/TO/WEIGHT}
+python run_evaluate_custom.py --posenet_name mlp --keypoints resnet_101 --evaluate {PATH/TO/WEIGHT}
+python run_evaluate_custom.py --posenet_name mlp --keypoints resnet_152 --evaluate {PATH/TO/WEIGHT}
 ```
 
 ## 2D detection result save 
-
+Get the pre-trained weight from [link](https://drive.google.com/drive/folders/1hOTihvbyIxsm5ygDpbUuJ7O_tzv4oXjC) for the resnet-based model and [link](https://drive.google.com/drive/folders/1b16iQ9p5jLcICnhGibkhyuFewTYyNLwF?usp=sharing) for peleenet-based model.
 ```sh
 # save the result of the Human3.6M training set using a 2D human pose estimation network
 python run_2d_detection_save.py --batch_size 128 --keypoints resnet_50 --path_2d {PATH/TO/WEIGHT} --is_train true 

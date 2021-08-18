@@ -61,14 +61,8 @@ def evaluate(data_loader, model_pos_eval, device, keypoints='gt', summary=None, 
         outputs_3d = outputs_3d[:, :, :] - outputs_3d[:, :1, :]
         
         # compute p1 and p2
-        if keypoints == 'gt':
-            evaluate_joint = [0,1,2,3,4,5,6,7, 8, 9, 10, 11, 12, 13, 14] # w/o thorax
-        elif keypoints == 'resnet':
-            evaluate_joint = [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15] # w/o thorax & torso
-        elif keypoints == 'pelee':
-            evaluate_joint = [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15]
-        else:
-            raise NotImplementedError("Not supported type of 2D estimation network")
+        evaluate_joint = [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14] # w/o thorax
+
         
         p1score = mpjpe(outputs_3d[:, evaluate_joint ,:], targets_3d[:, evaluate_joint, :]).item() * 1000.0
         epoch_p1.update(p1score, num_poses)

@@ -133,11 +133,10 @@ class DatasetLoader_only_lifting(Dataset):
             
             # not GT(2D)
             if self.keypoints == 'pelee':
-                self.keypoints_2d = COCO2HUMAN(self.keypoints_2d) # already normalized
+                self.keypoints_2d = COCO2HUMAN(self.keypoints_2d) 
             elif self.keypoints == 'resnet':
-                 self.keypoints_2d = MPII2HUMAN(self.keypoints_2d) # already normalized
+                self.keypoints_2d = MPII2HUMAN(self.keypoints_2d)
         
-
     def __getitem__(self, index):
         
         joints_have_depth = self.joints_have_depth

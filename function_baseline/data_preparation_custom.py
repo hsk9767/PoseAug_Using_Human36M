@@ -40,8 +40,9 @@ class Data_Custom(object):
                                                                                                                         transforms.ToTensor()
                                                                                                                         , transforms.Normalize(mean=pixel_mean, std=pixel_std)]), detection_2d=True)
                 
-            train_loader = DataLoader(dataset_3d, batch_size=args.batch_size, shuffle=True, num_workers=args.num_workers, pin_memory=True)
+            train_loader = DataLoader(dataset_3d, batch_size=args.batch_size, shuffle=False, num_workers=args.num_workers, pin_memory=True)
             if self.with_valid:
+                train_loader = DataLoader(dataset_3d, batch_size=args.batch_size, shuffle=True, num_workers=args.num_workers, pin_memory=True)
                 valid_dataset_3d = DatasetLoader(eval('Human36M')('test'), ref_joints_name=None, is_train=False, transform=transforms.Compose([\
                                                                                                                         transforms.ToTensor()
                                                                                                                         , transforms.Normalize(mean=pixel_mean, std=pixel_std)]), detection_2d=True)

@@ -78,7 +78,7 @@ def main(args):
             coord_loss.backward()
             optimizer.step()
             #printing
-            bar.suffix = '({batch} / {size})'.format(batch=i+1, size=len(data_dict['train_loader'])) 
+            bar.suffix = '({batch} / {size})    |    Loss : {loss}'.format(batch=i+1, size=len(data_dict['train_loader']), loss=coord_loss)
             bar.next()
         
         # evaluate
