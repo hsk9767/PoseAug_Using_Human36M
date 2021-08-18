@@ -1,7 +1,20 @@
-Do 'PoseAug'(CVPR 2021) with the Human3.6M dataset loaded by [Moon](https://github.com/mks0601/3DMPPE_POSENET_RELEASE.git).
+Do train the lifting network [Simple](https://github.com/una-dinosauria/3d-pose-baseline) with the Human3.6M dataset loaded by [Moon](https://github.com/mks0601/3DMPPE_POSENET_RELEASE.git).
 
+
+## Tree
+Follow the instructions in link(https://github.com/mks0601/3DMPPE_POSENET_RELEASE/tree/3f92ebaef214a0eb1574b7265e836456fbf3508a#data) to make the 'Human3.6M' folder and put it under the data directory
+```sh
+$ PoseAug_Human36M
+| -- ...
+| -- data
+    | -- Human3.6M
+        | -- annotations
+        | -- bbox_root
+        | -- ...
+| -- ...
+```
 ## Run training code  
-* Only baseline network(w/o [SemGCN](https://github.com/garyzhao/SemGCN)) training is available now. 
+* Only baseline network(w/o [Simple](https://github.com/una-dinosauria/3d-pose-baseline)) training is available now. 
 * 2D inputs are in image coordinate system and the target 3D keypoints are in camera coordinate system with meter unit.
 ```sh
 # mlp - GT 2D keypoints
@@ -9,7 +22,8 @@ python3 run_baseline_custom.py --note GT --checkpoint ./checkpoint/pretrain_base
 
 # mlp - 2D keypoints estimated by networks
 python3 run_baseline_custom.py --note resnet --checkpoint ./checkpoint/pretrain_baseline/ --posent_name mlp --stages 2 --keypoints resnet_50
-
+python3 run_baseline_custom.py --note resnet --checkpoint ./checkpoint/pretrain_baseline/ --posent_name mlp --stages 2 --keypoints resnet_101
+python3 run_baseline_custom.py --note resnet --checkpoint ./checkpoint/pretrain_baseline/ --posent_name mlp --stages 2 --keypoints resnet_152
 python3 run_baseline_custom.py --note resnet --checkpoint ./checkpoint/pretrain_baseline/ --posent_name mlp --stages 2 --keypoints pelee
 
 ``` 
@@ -41,11 +55,8 @@ python run_2d_detection_save.py --batch_size 128 --keypoints pelee --path_2d {PA
 # With estimated keypoints -> save_test/{#}_pelee.jpg or save_test/{#}_resnet.jpg
 
 python run_2d_save_test.pt --keypoints pelee
-
 python run_2d_save_test.pt --keypoints resnet_50
-
 python run_2d_save_test.pt --keypoints resnet_101
-
 python run_2d_save_test.pt --keypoints resnet_152
 ```
 
