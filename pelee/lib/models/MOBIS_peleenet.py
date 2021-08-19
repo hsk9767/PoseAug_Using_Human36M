@@ -146,10 +146,10 @@ class PeleeNet(nn.Module):
             self.features.add_module(
                 'transition%d' % (i + 1),
                 conv_bn_relu(num_features,
-                             num_features,
-                             kernel_size=1,
-                             stride=1,
-                             padding=0)
+                            num_features,
+                            kernel_size=1,
+                            stride=1,
+                            padding=0)
             )
             
             if i != len(self.block_config) - 1:
@@ -204,14 +204,14 @@ class PeleeNet(nn.Module):
 
     def init_weights(self, pretrained=''):
         if os.path.isfile(pretrained):
-            logger.info('=> init final conv weights from normal distribution')
+            print('==> init final conv weights from normal distribution')
             for m in self.final_layer.modules():
                 if isinstance(m, nn.Conv2d):
                     nn.init.normal_(m.weight, std=0.001)
                     nn.init.constant_(m.bias, 0)
 
             pretrained_state_dict = torch.load(pretrained)
-            logger.info('=> loading pretrained model {}'.format(pretrained))
+            print('==> loading pretrained model {}'.format(pretrained))
             for key in list(pretrained_state_dict.keys()):
                 val = pretrained_state_dict[key]
                 if key.find('final_layer.weight') != -1:
@@ -220,7 +220,7 @@ class PeleeNet(nn.Module):
                     del pretrained_state_dict[key]
             self.load_state_dict(pretrained_state_dict, strict=False)
         else:
-            logger.info('=> init weights from normal distribution')
+            print('==> init weights from normal distribution')
             for m in self.modules():
                 if isinstance(m, nn.Conv2d):
                     nn.init.normal_(m.weight, std=0.001)
@@ -232,11 +232,11 @@ class PeleeNet(nn.Module):
                     if self.deconv_with_bias:
                         nn.init.constant_(m.bias, 0)
 
-def get_pose_pelee_net(is_train, num_joints=17):
+def get_pose_pelee_net(is_train, pretrain_path = ''):
     if is_train:
         print(">>Peleenet Start")
         model = PeleeNet(nof_joints=16)
-        model.init_weights('./peleenet.pth')
+        model.init_weights(pretrain_path)
     else:
         model = PeleeNet()
 

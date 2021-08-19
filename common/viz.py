@@ -195,6 +195,39 @@ def show2Dpose(channels, ax, lcolor="#3498db", rcolor="#e74c3c", add_labels=True
 
   ax.set_aspect('equal')
 
+def show_3d_moon(keypoints, lines):
+    assert keypoints.shape[0] == 16 and keypoints.shape[-1] == 3
+    if not isinstance(keypoints, np.ndarray):
+        raise IOError("Not numpy array")
+    
+    fig = plt.figure()
+    ax = fig.add_subplot(111, projection='3d')
+    ax.set_xlim([-1, 1])
+    ax.set_ylim([-1, 1])
+    ax.set_zlim([-1, 1])
+    
+    cmap = plt.get_cmap('rainbow')
+    colors = [cmap(i) for i in np.linspace(0, 1, 18)]
+    colors = [np.array([c[2], c[1], c[0]]) for c in colors]
+
+    for l in range(len(lines)):
+        i1 = lines[l][0]
+        i2 = lines[l][1]
+        
+        x = np.array([keypoints[i1, 0], keypoints[i2, 0]])
+        y = np.array([keypoints[i1, 1], keypoints[i2, 1]])
+        z = np.array([keypoints[i1, 2], keypoints[i2, 2]])
+        
+        ax.plot(x, z, -y, c=colors[l], linewidth=2)
+        ax.scatter(keypoints[i1, 0], keypoints[i1, 2], -keypoints[i1, 1], color=colors[l], marker='o')
+        ax.scatter(keypoints[i2, 0], keypoints[i2, 2], -keypoints[i2, 1], color=colors[l], marker='o')
+    ax.set_title('3D vis')
+    ax.set_xlabel('X label')
+    ax.set_ylabel('Y label')
+    ax.set_xlabel('Z label')
+    # ax.legend()
+    
+    plt.savefig(f'data/Human3.6M/viz/vis.jpg')
 
 ##############################
 # wrap for simple usage
@@ -211,3 +244,4 @@ def wrap_show2d_pose(vals2d):
     ax2d = plt.axes()
     show2Dpose(vals2d, ax2d)
     plt.show()
+    

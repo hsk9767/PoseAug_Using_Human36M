@@ -12,7 +12,7 @@ from utils.data_utils import fetch
 from utils.loss import mpjpe, p_mpjpe, compute_PCK, compute_AUC
 from utils.utils import AverageMeter
 from data_extra.dataset_converter import COCO2HUMAN, MPII2HUMAN
-
+from tqdm import tqdm
 
 ####################################################################
 # ### evaluate p1 p2 pck auc dataset with test-flip-augmentation
@@ -88,6 +88,55 @@ def evaluate(data_loader, model_pos_eval, device, keypoints='gt', summary=None, 
     return epoch_p1.avg, epoch_p2.avg
 
 
+def evaluate_3d_mppe(data_loader, model_pos_eval, device, summary=None, writer=None, key='', tag='', flipaug=''):
+    batch_time = AverageMeter()
+    data_time = AverageMeter()
+    epoch_p1 = AverageMeter()
+    epoch_p2 = AverageMeter()
+
+    # Switch to evaluate mode
+    model_pos_eval.eval()
+    end = time.time()
+    
+    output = []
+    target = []
+    with torch.no_grad():
+        for i, temp in tqdm(enumerate(data_loader)):
+            joint_img, img_patch, targets_3d, bbox, f, c, root_cam = temp
+            bbox, root_cam = bbox.to(device), root_cam.to(device)
+            # inferencing
+            output_coord = model_pos_eval(img_patch)
+            num_batch = output_coord.shape[0]
+            # to original coordinate
+            for j in range(num_batch):
+                output_coord[j, :, 0] = output_coord[j, :, 0] / 64 * bbox[j][2] + bbox[j][0]
+                output_coord[j, :, 1] = output_coord[j, :, 1] / 64 * bbox[j][3] + bbox[j][1]
+                output_coord[j, :, 2] = (output_coord[j, :, 2] / 64 * 2 -1) * (1000) + root_cam[j][2]
+            #to camera coordinates
+            for j in range(num_batch):
+                output_coord[j, :, 0] = (output_coord[j, :, 0] - c[j][0]) / f[j][0] * output_coord[j, :, 2]
+                output_coord[j, :, 1] = (output_coord[j, :, 1] - c[j][1]) / f[j][1] * output_coord[j, :, 2]
+            
+            # caculate the relative position.
+            targets_3d = targets_3d[:, :, :] - targets_3d[:, :1, :] # the output is relative to the root joint
+            outputs_3d = output_coord[:, :, :] - output_coord[:, :1, :]
+            
+            # w/o thorax
+            targets_3d = targets_3d[:, :-1, :] 
+            outputs_3d = outputs_3d[:, :-1, :]
+            
+            output.append(outputs_3d.cpu().numpy())
+            target.append(targets_3d.cpu().numpy())
+    print('==> Pre-processing end')
+    output = np.concatenate(output, axis=0)
+    target = np.concatenate(target, axis=0)
+    
+    # error calculate
+    error = []
+    for i in range(len(output)):
+        error.append(np.sqrt(np.sum((output[i] - target[i])**2,1)))
+    
+    print(f'Error is {np.mean(error)}')
 #########################################
 # overall evaluation function
 #########################################

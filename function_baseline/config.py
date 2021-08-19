@@ -10,6 +10,7 @@ def get_parse_args():
     parser.add_argument('--keypoints', default='gt', type=str, metavar='NAME', help='2D detections to use, \
     gt/hr/cpn_ft_h36m_dbb/detectron_ft_h36m')
     parser.add_argument('--path_2d', default = '../final_state.pth.tar', type=str, help = 'weight path of the 2D estimation network')
+    parser.add_argument('--pelee_imagenet_pretrain_path', default = 'data/Human3.6M/peleenet_acc7208.pth.tar', type=str, help = 'peleenet weight to finetune')
     parser.add_argument('--actions', default='*', type=str, metavar='LIST',
                         help='actions to train/test on, separated by comma, or * for all')
     parser.add_argument('--checkpoint', default='checkpoint/debug', type=str, metavar='PATH',
@@ -22,6 +23,7 @@ def get_parse_args():
                         type=str, help='where the cfg of the model(hrnet-32) is taken from')
     parser.add_argument('--saved_2d', default='resnet.npz', type=str, help='results of 2D pose estimation network about Human3.6M')
     parser.add_argument('--is_train', default=True, type=lambda x: (str(x).lower() == 'true'), help='train_or_valid')
+    parser.add_argument('--path_one_stage', default = 'data/Human3.6M/snapshot_24.pth.tar', type=str, help = 'weight path of the one_stage method')
     
     
     

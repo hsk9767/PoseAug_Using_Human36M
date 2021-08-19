@@ -8,18 +8,24 @@ import json
 from utils.data_utils import world2cam, cam2pixel, pixel2cam, process_bbox, cam2pixel_custom
 
 class Human36M:
-    def __init__(self, data_split):
+    def __init__(self, data_split, original=False):
         print(f'==> {data_split} dataset is being loaded..')
+        self.original = original
         self.data_split = data_split
         self.img_dir = osp.join('./data/Human3.6M/images')
         self.annot_path = osp.join('./data/Human3.6M/annotations')
         self.human_bbox_root_dir = osp.join('./data/bbox_root/bbox_root_human36m_output.json')
         # self.joint_num = 18 # original:17, but manually added 'Thorax'
-        self.joint_num = 16 # removed 'nose' and 'neck'
-        # self.joints_name = ('Pelvis', 'R_Hip', 'R_Knee', 'R_Ankle', 'L_Hip', 'L_Knee', 'L_Ankle', 'Torso', 'Neck', 'Nose', 'Head', 'L_Shoulder', 'L_Elbow', 'L_Wrist', 'R_Shoulder', 'R_Elbow', 'R_Wrist', 'Thorax')
-        self.joints_name = ('Pelvis', 'R_Hip', 'R_Knee', 'R_Ankle', 'L_Hip', 'L_Knee', 'L_Ankle', 'Torso', 'Head', 'L_Shoulder', 'L_Elbow', 'L_Wrist', 'R_Shoulder', 'R_Elbow', 'R_Wrist', 'Thorax')
+        if original:
+            self.joint_num = 18
+        else:
+            self.joint_num = 16 # removed 'nose' and 'neck'
+        if original:
+            self.joints_name = ('Pelvis', 'R_Hip', 'R_Knee', 'R_Ankle', 'L_Hip', 'L_Knee', 'L_Ankle', 'Torso', 'Neck', 'Nose', 'Head', 'L_Shoulder', 'L_Elbow', 'L_Wrist', 'R_Shoulder', 'R_Elbow', 'R_Wrist', 'Thorax')
+        else:
+            self.joints_name = ('Pelvis', 'R_Hip', 'R_Knee', 'R_Ankle', 'L_Hip', 'L_Knee', 'L_Ankle', 'Torso', 'Head', 'L_Shoulder', 'L_Elbow', 'L_Wrist', 'R_Shoulder', 'R_Elbow', 'R_Wrist', 'Thorax')
         self.flip_pairs = ( (1, 4), (2, 5), (3, 6), (12, 9), (13, 10), (14, 11) )
-        self.skeleton = ( (0, 7), (7, 8), (8, 9), (9, 10), (8, 11), (11, 12), (12, 13), (8, 14), (14, 15), (15, 16), (0, 1), (1, 2), (2, 3), (0, 4), (4, 5), (5, 6) )
+        self.skeleton = ( (8, 15), (15, 9), (9, 10), (10, 11), (15, 12), (12, 13), (13, 14), (15, 7), (7, 0), (0, 4), (4, 5), (5, 6), (0, 1), (1, 2), (2, 3) )
         # self.skeleton = ( (0, 7), (9, 10), (10, 11), (12, 13), (13, 14), (0, 1), (1, 2), (2, 3), (0, 4), (4, 5), (5, 6), (15, 9), (15, 12), (15, 8), (15, 7) )
         self.joints_have_depth = True
         # self.eval_joint = (0, 1, 2, 3, 4, 5, 6, 7, 8, 9,  10, 11, 12, 13, 14, 15, 16) # exclude Thorax
@@ -32,6 +38,7 @@ class Human36M:
         self.rshoulder_idx = 14
         self.protocol = 2
         self.data = self.load_data()
+        
 
     def get_subsampling_ratio(self):
         if self.data_split == 'train':
@@ -136,8 +143,9 @@ class Human36M:
             if bbox is None: continue
             root_cam = joint_cam[self.root_idx]
             
-            joint_img = joint_img[self.joint_select]
-            joint_cam = joint_cam[self.joint_select]
+            if not self.original:
+                joint_img = joint_img[self.joint_select]
+                joint_cam = joint_cam[self.joint_select]
             
             data.append({
                 'img_width' : img_width,

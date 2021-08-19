@@ -26,8 +26,8 @@ def get_parse_args():
                         help='checkpoint to resume (file name)')
 
     # Model arguments
-    parser.add_argument('--posenet_name', default='videopose', type=str, help='posenet: gcn/stgcn/videopose/mlp')
-    parser.add_argument('--stages', default=4, type=int, metavar='N', help='stages of baseline model')
+    parser.add_argument('--posenet_name', default='mlp', type=str, help='posenet: gcn/stgcn/videopose/mlp')
+    parser.add_argument('--stages', default=2, type=int, metavar='N', help='stages of baseline model')
     parser.add_argument('--dropout', default=0.25, type=float, help='dropout rate')
 
     # Training detail
