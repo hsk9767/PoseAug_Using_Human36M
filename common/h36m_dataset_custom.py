@@ -167,72 +167,72 @@ class Human36M:
         
         return data
 
-    def evaluate(self, preds, result_dir):
+    # def evaluate(self, preds, result_dir):
         
-        print('Evaluation start...')
-        gts = self.data
-        assert len(gts) == len(preds)
-        sample_num = len(gts)
+    #     print('Evaluation start...')
+    #     gts = self.data
+    #     assert len(gts) == len(preds)
+    #     sample_num = len(gts)
         
-        pred_save = []
-        error = np.zeros((sample_num, self.joint_num-1)) # joint error
-        error_action = [ [] for _ in range(len(self.action_name)) ] # error for each sequence
-        for n in range(sample_num):
-            gt = gts[n]
-            image_id = gt['img_id']
-            f = gt['f']
-            c = gt['c']
-            bbox = gt['bbox']
-            gt_3d_root = gt['root_cam']
-            gt_3d_kpt = gt['joint_cam']
-            gt_vis = gt['joint_vis']
+    #     pred_save = []
+    #     error = np.zeros((sample_num, self.joint_num-1)) # joint error
+    #     error_action = [ [] for _ in range(len(self.action_name)) ] # error for each sequence
+    #     for n in range(sample_num):
+    #         gt = gts[n]
+    #         image_id = gt['img_id']
+    #         f = gt['f']
+    #         c = gt['c']
+    #         bbox = gt['bbox']
+    #         gt_3d_root = gt['root_cam']
+    #         gt_3d_kpt = gt['joint_cam']
+    #         gt_vis = gt['joint_vis']
             
-            # restore coordinates to original space
-            pred_2d_kpt = preds[n].copy()
-            pred_2d_kpt[:,0] = pred_2d_kpt[:,0] / cfg.output_shape[1] * bbox[2] + bbox[0]
-            pred_2d_kpt[:,1] = pred_2d_kpt[:,1] / cfg.output_shape[0] * bbox[3] + bbox[1]
-            pred_2d_kpt[:,2] = (pred_2d_kpt[:,2] / cfg.depth_dim * 2 - 1) * (cfg.bbox_3d_shape[0]/2) + gt_3d_root[2]
+    #         # restore coordinates to original space
+    #         pred_2d_kpt = preds[n].copy()
+    #         pred_2d_kpt[:,0] = pred_2d_kpt[:,0] / cfg.output_shape[1] * bbox[2] + bbox[0]
+    #         pred_2d_kpt[:,1] = pred_2d_kpt[:,1] / cfg.output_shape[0] * bbox[3] + bbox[1]
+    #         pred_2d_kpt[:,2] = (pred_2d_kpt[:,2] / cfg.depth_dim * 2 - 1) * (cfg.bbox_3d_shape[0]/2) + gt_3d_root[2]
             
 
-            # back project to camera coordinate system
-            pred_3d_kpt = pixel2cam(pred_2d_kpt, f, c)
+    #         # back project to camera coordinate system
+    #         pred_3d_kpt = pixel2cam(pred_2d_kpt, f, c)
  
-            # root joint alignment
-            pred_3d_kpt = pred_3d_kpt - pred_3d_kpt[self.root_idx]
-            gt_3d_kpt  = gt_3d_kpt - gt_3d_kpt[self.root_idx]
+    #         # root joint alignment
+    #         pred_3d_kpt = pred_3d_kpt - pred_3d_kpt[self.root_idx]
+    #         gt_3d_kpt  = gt_3d_kpt - gt_3d_kpt[self.root_idx]
            
-            if self.protocol == 1:
-                # rigid alignment for PA MPJPE (protocol #1)
-                pred_3d_kpt = rigid_align(pred_3d_kpt, gt_3d_kpt)
+    #         if self.protocol == 1:
+    #             # rigid alignment for PA MPJPE (protocol #1)
+    #             pred_3d_kpt = rigid_align(pred_3d_kpt, gt_3d_kpt)
             
-            # exclude thorax
-            pred_3d_kpt = np.take(pred_3d_kpt, self.eval_joint, axis=0)
-            gt_3d_kpt = np.take(gt_3d_kpt, self.eval_joint, axis=0)
+    #         # exclude thorax
+    #         pred_3d_kpt = np.take(pred_3d_kpt, self.eval_joint, axis=0)
+    #         gt_3d_kpt = np.take(gt_3d_kpt, self.eval_joint, axis=0)
            
-            # error calculate
-            error[n] = np.sqrt(np.sum((pred_3d_kpt - gt_3d_kpt)**2,1))
-            img_name = gt['img_path']
-            action_idx = int(img_name[img_name.find('act')+4:img_name.find('act')+6]) - 2
-            error_action[action_idx].append(error[n].copy())
+    #         # error calculate
+    #         error[n] = np.sqrt(np.sum((pred_3d_kpt - gt_3d_kpt)**2,1))
+    #         img_name = gt['img_path']
+    #         action_idx = int(img_name[img_name.find('act')+4:img_name.find('act')+6]) - 2
+    #         error_action[action_idx].append(error[n].copy())
 
-            # prediction save
-            pred_save.append({'image_id': image_id, 'joint_cam': pred_3d_kpt.tolist(), 'bbox': bbox.tolist(), 'root_cam': gt_3d_root.tolist()}) # joint_cam is root-relative coordinate
+    #         # prediction save
+    #         pred_save.append({'image_id': image_id, 'joint_cam': pred_3d_kpt.tolist(), 'bbox': bbox.tolist(), 'root_cam': gt_3d_root.tolist()}) # joint_cam is root-relative coordinate
 
-        # total error
-        tot_err = np.mean(error)
-        metric = 'PA MPJPE' if self.protocol == 1 else 'MPJPE'
-        eval_summary = 'Protocol ' + str(self.protocol) + ' error (' + metric + ') >> tot: %.2f\n' % (tot_err)
+    #     # total error
+    #     tot_err = np.mean(error)
+    #     metric = 'PA MPJPE' if self.protocol == 1 else 'MPJPE'
+    #     eval_summary = 'Protocol ' + str(self.protocol) + ' error (' + metric + ') >> tot: %.2f\n' % (tot_err)
 
-        # error for each action
-        for i in range(len(error_action)):
-            err = np.mean(np.array(error_action[i]))
-            eval_summary += (self.action_name[i] + ': %.2f ' % err)
+    #     # error for each action
+    #     for i in range(len(error_action)):
+    #         err = np.mean(np.array(error_action[i]))
+    #         eval_summary += (self.action_name[i] + ': %.2f ' % err)
            
-        print(eval_summary)
+    #     print(eval_summary)
 
-        # prediction save
-        output_path = osp.join(result_dir, 'bbox_root_pose_human36m_output.json')
-        with open(output_path, 'w') as f:
-            json.dump(pred_save, f)
-        print("Test result is saved at " + output_path)
+    #     # prediction save
+    #     output_path = osp.join(result_dir, 'bbox_root_pose_human36m_output.json')
+    #     with open(output_path, 'w') as f:
+    #         json.dump(pred_save, f)
+    #     print("Test result is saved at " + output_path)
 

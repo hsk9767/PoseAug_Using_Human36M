@@ -29,6 +29,7 @@ def get_parse_args():
     # one-stage 
     parser.add_argument('--one_stage_continue_train', default=False, type=lambda x: (str(x).lower() == 'true'), help='continue one-stage model train?')
     parser.add_argument('--path_one_stage', default = 'data/Human3.6M/snapshot_24.pth.tar', type=str, help = 'weight path of the one_stage method')
+    parser.add_argument('--save_path_one_stage', default = 'data/Human3.6M/one_stage/', type=str, help = 'save path of the one_stage method')
     parser.add_argument('--dec_start', default=17, type=int, metavar='N', help='the first epoch to lr_decay')
     parser.add_argument('--dec_end', default=21, type=int, metavar='N', help='the last epoch to lr_decay')
     parser.add_argument('--dec_fac', default=10, type=int, metavar='N', help='the last epoch to lr_decay')

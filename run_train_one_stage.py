@@ -41,8 +41,8 @@ def main(args):
     ref_joints_name = train_dataset_3d.joints_name
 
     # 2d
-    path_3d = 'common.' + 'MPII'
-    exec('from ' + path_3d + ' import ' + 'MPII')
+    path_2d = 'common.' + 'MPII'
+    exec('from ' + path_2d + ' import ' + 'MPII')
     train_dataset_2d = DatasetLoader_3d_mppe(eval("MPII")("train"), ref_joints_name, True, transforms.Compose([\
                                                                                                         transforms.ToTensor(),
                                                                                                         transforms.Normalize(mean=pixel_mean, std=pixel_std)]\
@@ -71,7 +71,7 @@ def main(args):
         for g in optimizer.param_groups:
             g['lr'] = cur_lr
     
-    ckpt_dir_path = path.join('data', 'Human3.6M', 'one_stage')
+    ckpt_dir_path = args.save_path_one_stage
     os.makedirs(ckpt_dir_path, exist_ok=True)
     print('==> Making checkpoint dir: {}'.format(ckpt_dir_path))
     
@@ -83,17 +83,18 @@ def main(args):
         
         # lr setting
         decay_epoch = [args.dec_start, args.dec_end]
-        for e in decay_epoch:
-            if epoch < e:
-                break
-        if epoch < args.dec_end:
-            idx = decay_epoch.index(e)
-            for g in optimizer.param_groups:
-                g['lr'] = args.lr / (args.dec_fac ** idx)
-        else:
-            for g in optimizer.param_groups:
-                g['lr'] = args.lr / (args.dec_fac ** 2)
         
+        if epoch < args.dec_start:
+            cur_lr = args.lr 
+        elif epoch < args.dec_end:
+            cur_lr = args.lr * args.dec_fac
+        else:
+            cur_lr = args.lr * ( args.dec_fac ** 2 )
+    
+        for g in optimizer.param_groups:
+            g['lr'] = cur_lr
+        
+        print('lr : ' , cur_lr)
         print(f'\n Epoch : {epoch}')
         bar = Bar('Train', max=len(train_loader))
         
