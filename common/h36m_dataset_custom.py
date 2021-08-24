@@ -8,8 +8,10 @@ import json
 from utils.data_utils import world2cam, cam2pixel, pixel2cam, process_bbox, cam2pixel_custom
 
 class Human36M:
+    # if original -> 18 points as 3DMPPE
+    # else -> 16 keypoints as PoseAug
     def __init__(self, data_split, original=False):
-        print(f'==> {data_split} dataset is being loaded..')
+        print(f'==> {data_split} dataset of Human3.6M is being loaded..')
         self.original = original
         self.data_split = data_split
         self.img_dir = osp.join('./data/Human3.6M/images')
@@ -17,21 +19,20 @@ class Human36M:
         self.human_bbox_root_dir = osp.join('./data/bbox_root/bbox_root_human36m_output.json')
         # self.joint_num = 18 # original:17, but manually added 'Thorax'
         if original:
-            self.joint_num = 18
-        else:
-            self.joint_num = 16 # removed 'nose' and 'neck'
-        if original:
             self.joints_name = ('Pelvis', 'R_Hip', 'R_Knee', 'R_Ankle', 'L_Hip', 'L_Knee', 'L_Ankle', 'Torso', 'Neck', 'Nose', 'Head', 'L_Shoulder', 'L_Elbow', 'L_Wrist', 'R_Shoulder', 'R_Elbow', 'R_Wrist', 'Thorax')
+            self.flip_pairs = ( (1, 4), (2, 5), (3, 6), (14, 11), (15, 12), (16, 13) )
+            self.joint_num = 18
+            self.skeleton = ( (0, 7), (7, 8), (8, 9), (9, 10), (8, 11), (11, 12), (12, 13), (8, 14), (14, 15), (15, 16), (0, 1), (1, 2), (2, 3), (0, 4), (4, 5), (5, 6) )
+            self.eval_joint = (0, 1, 2, 3, 4, 5, 6, 7, 8, 9,  10, 11, 12, 13, 14, 15, 16)
         else:
             self.joints_name = ('Pelvis', 'R_Hip', 'R_Knee', 'R_Ankle', 'L_Hip', 'L_Knee', 'L_Ankle', 'Torso', 'Head', 'L_Shoulder', 'L_Elbow', 'L_Wrist', 'R_Shoulder', 'R_Elbow', 'R_Wrist', 'Thorax')
-        self.flip_pairs = ( (1, 4), (2, 5), (3, 6), (12, 9), (13, 10), (14, 11) )
-        self.skeleton = ( (8, 15), (15, 9), (9, 10), (10, 11), (15, 12), (12, 13), (13, 14), (15, 7), (7, 0), (0, 4), (4, 5), (5, 6), (0, 1), (1, 2), (2, 3) )
-        # self.skeleton = ( (0, 7), (9, 10), (10, 11), (12, 13), (13, 14), (0, 1), (1, 2), (2, 3), (0, 4), (4, 5), (5, 6), (15, 9), (15, 12), (15, 8), (15, 7) )
+            self.flip_pairs = ( (1, 4), (2, 5), (3, 6), (12, 9), (13, 10), (14, 11) )
+            self.joint_num = 16 # removed 'nose' and 'neck'
+            self.skeleton = ( (8, 15), (15, 9), (9, 10), (10, 11), (15, 12), (12, 13), (13, 14), (15, 7), (7, 0), (0, 4), (4, 5), (5, 6), (0, 1), (1, 2), (2, 3) )
+            self.eval_joint = (0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15)
+        
         self.joints_have_depth = True
-        # self.eval_joint = (0, 1, 2, 3, 4, 5, 6, 7, 8, 9,  10, 11, 12, 13, 14, 15, 16) # exclude Thorax
-        self.eval_joint = (0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15) # exclude nose and neck
         self.joint_select = [0,1,2,3,4,5,6,7,10,11,12,13,14,15,16,17]
-
         self.action_name = ['Directions', 'Discussion', 'Eating', 'Greeting', 'Phoning', 'Posing', 'Purchases', 'Sitting', 'SittingDown', 'Smoking', 'Photo', 'Waiting', 'Walking', 'WalkDog', 'WalkTogether']
         self.root_idx = self.joints_name.index('Pelvis')
         self.lshoulder_idx = 11
@@ -45,6 +46,8 @@ class Human36M:
             return 5
         elif self.data_split == 'test':
             return 64
+        elif self.data_split == 'vis':
+            return 2
         else:
             assert 0, print('Unknown subset')
 
@@ -59,6 +62,8 @@ class Human36M:
                 subject = [11]
             elif self.protocol == 2:
                 subject = [9,11]
+        elif self.data_split == 'vis':
+            subject = [9]
         else:
             assert 0, print("Unknown subset")
 

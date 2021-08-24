@@ -7,13 +7,13 @@ import copy
 import math
 from torch.utils.data.dataset import Dataset
 from data_extra.dataset_converter import COCO2HUMAN, MPII2HUMAN
-
+from data_extra.dataset_converter import transform_joint_to_other_db
 input_shape = (256, 256) 
 output_shape = (64, 64)
 bbox_3d_shape = (2000, 2000, 2000)
 
 class DatasetLoader(Dataset):
-    def __init__(self, db, ref_joints_name, is_train, transform, detection_2d=False, finetune=False):
+    def __init__(self, db, ref_joints_name, is_train, transform, detection_2d=False, finetune=False, vis=False, args=None):
         
         self.db = db.data
         self.joint_num = db.joint_num
@@ -40,6 +40,21 @@ class DatasetLoader(Dataset):
         # finetune
         if finetune:
             self.finetune = finetune
+        
+        # visualize
+        if vis:
+            self.vis = vis
+        #     # length adjustment
+        #     assert args is not None
+        #     interested_paths = []
+        #     for i in range(len(self.db)):
+        #         if args.what_to_vis in self.db[i]['img_path']:
+        #             interested_paths.append(self.db[i]['img_path'])
+        #             if len(interested_paths) == 1:
+        #                 self.start_index = i
+        #     self.end_index = len(interested_paths) + i - 1
+        #     self.db = self.db[self.start_index:self.end_index + 1]
+            
 
     def __getitem__(self, index):
         
@@ -50,7 +65,7 @@ class DatasetLoader(Dataset):
         joint_img = data['joint_img']
         joint_cam = data['joint_cam']
         joint_vis = data['joint_vis']
-        img_width, img_height = data['img_width'], data['img_height']
+        # img_width, img_height = data['img_width'], data['img_height']
         
         # 1. load image
         cvimg = cv2.imread(data['img_path'], cv2.IMREAD_COLOR | cv2.IMREAD_IGNORE_ORIENTATION)
@@ -95,6 +110,8 @@ class DatasetLoader(Dataset):
 
         if not self.bbox_output:
             return img_patch, joint_img, joint_cam, joint_vis
+        elif self.vis:
+            return data['img_path'], img_patch, bbox#, data['root_cam'], data['f'], data['c']#, normalize_screen_coordinates(joint_img, img_width, img_height).astype(np.float32)
         else:
             return img_patch, joint_img, joint_cam, joint_vis, bbox, img_width, img_height
     
@@ -140,7 +157,7 @@ class DatasetLoader_only_lifting(Dataset):
             # not GT(2D)
             if self.keypoints == 'pelee':
                 self.keypoints_2d = COCO2HUMAN(self.keypoints_2d) 
-            elif self.keypoints == 'resnet':
+            elif 'resnet' in self.keypoints:
                 self.keypoints_2d = MPII2HUMAN(self.keypoints_2d)
         
         # visualize
@@ -178,15 +195,10 @@ class DatasetLoader_only_lifting(Dataset):
             cvimg = cv2.imread(data['img_path'], cv2.IMREAD_COLOR | cv2.IMREAD_IGNORE_ORIENTATION)
             if not isinstance(cvimg, np.ndarray):
                 raise IOError("Fail to read %s" % data['img_path'])
-            return cvimg, joint_img, joint_cam
+            return data['img_path'], joint_img, joint_cam
         else:
             return joint_img, joint_cam, joint_vis    
-            
 
-            
-        
-            
-    
     def __len__(self):
         return len(self.db)
 
@@ -305,7 +317,7 @@ class DatasetLoader_saved_test(Dataset):
         bbox = data['bbox'] # top_left_x, top_left_y, width, height
         joint_img = data['joint_img']
         
-        img_width, img_height = data['img_width'], data['img_height']
+        # img_width, img_height = data['img_width'], data['img_height']
         
         # 1. load image
         cvimg = cv2.imread(data['img_path'], cv2.IMREAD_COLOR | cv2.IMREAD_IGNORE_ORIENTATION)
@@ -327,7 +339,7 @@ class DatasetLoader_saved_test(Dataset):
 # helper functions
 
 class DatasetLoader_3d_mppe(Dataset):
-    def __init__(self, db, ref_joints_name, is_train, transform):
+    def __init__(self, db, ref_joints_name, is_train, transform, vis=False):
         
         self.db = db.data
         self.joint_num = db.joint_num
@@ -339,6 +351,7 @@ class DatasetLoader_3d_mppe(Dataset):
         
         self.transform = transform
         self.is_train = is_train
+        self.vis = vis
         
     def __getitem__(self, index):
         
@@ -347,33 +360,45 @@ class DatasetLoader_3d_mppe(Dataset):
 
         bbox = data['bbox'] # top_left_x, top_left_y, width, height
         joint_img = data['joint_img']
-        joint_cam = data['joint_cam']
         joint_vis = data['joint_vis']
-        img_width, img_height = data['img_width'], data['img_height']
-        f, c = data['f'], data['c']
-        root_cam = data['root_cam']
-        
         
         # 1. load image
         cvimg = cv2.imread(data['img_path'], cv2.IMREAD_COLOR | cv2.IMREAD_IGNORE_ORIENTATION)
         if not isinstance(cvimg, np.ndarray):
             raise IOError("Fail to read %s" % data['img_path'])
         img_height, img_width, img_channels = cvimg.shape
-
-        scale, rot, do_flip, color_scale, do_occlusion = 1.0, 0.0, False, [1.0, 1.0, 1.0], False
-
+        
+        # 2. get augmentation params
+        if self.is_train:    
+            scale, rot, do_flip, color_scale, do_occlusion = get_aug_config()
+        else:
+            scale, rot, do_flip, color_scale, do_occlusion = 1.0, 0.0, False, [1.0, 1.0, 1.0], False    
+            
         # 3. crop patch from img and perform data augmentation (flip, rot, color scale, synthetic occlusion)
         img_patch, trans = generate_patch_image(cvimg, bbox, do_flip, scale, rot, do_occlusion)
         img_patch = img_patch.astype(np.float32)
         for i in range(img_channels):
             img_patch[:, :, i] = np.clip(img_patch[:, :, i] * color_scale[i], 0, 255)
         
-        # # for wvaluation
-        # if not self.is_train:
-        #     img_patch = self.transform(img_patch)
-        #     joint_cam = (joint_cam).astype(np.float32)
-        #     return img_patch, joint_cam, bbox, f, c, root_cam
+        # for valid loader
+        if not self.is_train:
+            img_patch = self.transform(img_patch)
+            joint_cam = data['joint_cam']
+            joint_cam = (joint_cam).astype(np.float32)
+            f, c = data['f'], data['c']
+            root_cam = data['root_cam']
+            if self.vis:
+                return data['img_path'], img_patch, bbox, f, c, root_cam
+            else:
+                return img_patch, joint_cam, bbox, f, c, root_cam
         
+        # 4. generate from img
+        if do_flip:
+            joint_img[:, 0] = img_width - joint_img[:, 0] - 1
+            for pair in self.flip_pairs:
+                joint_img[pair[0], :], joint_img[pair[1], :] = joint_img[pair[1], :], joint_img[pair[0], :].copy()
+                joint_vis[pair[0], :], joint_vis[pair[1], :] = joint_vis[pair[1], :], joint_vis[pair[0], :].copy()
+
         # joint_img in image plane to bbox plane
         for i in range(len(joint_img)):
             joint_img[i, 0:2] = trans_point2d(joint_img[i, 0:2], trans)
@@ -391,22 +416,54 @@ class DatasetLoader_3d_mppe(Dataset):
         joint_img[:, 1] = joint_img[:, 1] / 4
         joint_img[:, 2] = joint_img[:, 2] * 64
         
-        joint_img = joint_img.astype(np.float32)
         img_patch = self.transform(img_patch)
-        joint_cam = joint_cam.astype(np.float32)
+        if self.ref_joints_name is not None:
+            joint_img = transform_joint_to_other_db(joint_img, self.joints_name, self.ref_joints_name)
+            joint_vis = transform_joint_to_other_db(joint_vis, self.joints_name, self.ref_joints_name)
+        joint_img = joint_img.astype(np.float32)
         joint_vis = (joint_vis > 0).astype(np.float32)
         joints_have_depth = np.array([joints_have_depth]).astype(np.float32)
-        # for wvaluation
-        if not self.is_train:
-            # img_patch = self.transform(img_patch)
-            joint_cam = (joint_cam).astype(np.float32)
-            return joint_img, img_patch, joint_cam, bbox, f, c, root_cam
-        else:
-            return img_patch, joint_img, joint_cam, joint_vis
+    
+        return img_patch, joint_img, joint_vis, joints_have_depth
     
     def __len__(self):
         return len(self.db)
-    
+
+class MultipleDatasets(Dataset):
+    def __init__(self, dbs, make_same_len=True):
+        self.dbs = dbs
+        self.db_num = len(self.dbs)
+        self.max_db_data_num = max([len(db) for db in dbs])
+        self.db_len_cumsum = np.cumsum([len(db) for db in dbs])
+        self.make_same_len = make_same_len
+
+    def __len__(self):
+        # all dbs have the same length
+        if self.make_same_len:
+            return self.max_db_data_num * self.db_num
+        # each db has different length
+        else:
+            return sum([len(db) for db in self.dbs])
+
+    def __getitem__(self, index):
+        if self.make_same_len:
+            db_idx = index // self.max_db_data_num
+            data_idx = index % self.max_db_data_num 
+            if data_idx >= len(self.dbs[db_idx]) * (self.max_db_data_num // len(self.dbs[db_idx])): # last batch: random sampling
+                data_idx = random.randint(0,len(self.dbs[db_idx])-1)
+            else: # before last batch: use modular
+                data_idx = data_idx % len(self.dbs[db_idx])
+        else:
+            for i in range(self.db_num):
+                if index < self.db_len_cumsum[i]:
+                    db_idx = i
+                    break
+            if db_idx == 0:
+                data_idx = index
+            else:
+                data_idx = index - self.db_len_cumsum[db_idx-1]
+
+        return self.dbs[db_idx][data_idx]
     
 def get_aug_config():
     

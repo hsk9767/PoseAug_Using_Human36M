@@ -195,8 +195,8 @@ def show2Dpose(channels, ax, lcolor="#3498db", rcolor="#e74c3c", add_labels=True
 
   ax.set_aspect('equal')
 
-def show_3d_moon(keypoints, lines):
-    assert keypoints.shape[0] == 16 and keypoints.shape[-1] == 3
+def show_3d_moon(keypoints, lines, save_path):
+    assert keypoints.shape[-1] == 3
     if not isinstance(keypoints, np.ndarray):
         raise IOError("Not numpy array")
     
@@ -227,7 +227,8 @@ def show_3d_moon(keypoints, lines):
     ax.set_xlabel('Z label')
     # ax.legend()
     
-    plt.savefig(f'data/Human3.6M/viz/vis.jpg')
+    plt.savefig(save_path)
+    plt.close()
 
 ##############################
 # wrap for simple usage

@@ -7,15 +7,8 @@ import random
 import numpy as np
 import torch
 import torch.backends.cudnn as cudnn
-
 from function_baseline.config import get_parse_args
-# from function_baseline.data_preparation import data_preparation
-from function_baseline.data_preparation_custom import Data_Custom
-from function_baseline.model_pos_preparation import model_pos_preparation
 from function_poseaug.model_pos_eval_custom import evaluate, evaluate_3d_mppe
-from pelee.lib.models.MOBIS_peleenet import get_pose_pelee_net
-from common import get_resnet
-from data_extra.dataset_converter import COCO2HUMAN, MPII2HUMAN
 from one_stage import get_pose_net
 # from function_poseaug.model_pos_eval import evaluate
 from common.common_dataset import DatasetLoader_3d_mppe

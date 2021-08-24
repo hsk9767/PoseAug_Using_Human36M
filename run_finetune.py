@@ -9,14 +9,14 @@ import numpy as np
 import torch
 import torch.backends.cudnn as cudnn
 import torch.nn as nn
-
+import time
 from function_baseline.config import get_parse_args
 from function_baseline.data_preparation_custom import Data_Custom
 from function_finetune import soft_argmax
 from pelee.lib.models.MOBIS_peleenet import get_pose_pelee_net
 from common import get_resnet
 from progress.bar import Bar
-
+from utils.utils import AverageMeter
 
 """
 this code is used to pretrain the baseline model
@@ -38,7 +38,7 @@ def main(args):
     
     print("==> Creating 2D pose estimation model...")    
     if 'pelee' == args.keypoints:
-        estimator_2d = get_pose_pelee_net(is_train=True).cuda()
+        estimator_2d = get_pose_pelee_net(is_train=True, pretrain_path=args.pelee_imagenet_pretrain_path).cuda()
     elif 'resnet' in args.keypoints:
         print("==> Creating 2D pose estimation model...")
         estimator_2d = get_resnet(args).cuda()
@@ -60,6 +60,9 @@ def main(args):
 
     best_perf = 10000000.
     for epoch in range(140):
+        batch_time = AverageMeter()
+        train_loss = AverageMeter()
+        end_time = time.time()
         # train
         print(f'\n Epoch : {epoch}')
         bar = Bar('Train', max=len(data_dict['train_loader']))
@@ -78,7 +81,10 @@ def main(args):
             coord_loss.backward()
             optimizer.step()
             #printing
-            bar.suffix = '({batch} / {size})    |    Loss : {loss}'.format(batch=i+1, size=len(data_dict['train_loader']), loss=coord_loss)
+            train_loss.update(coord_loss)
+            batch_time.update(time.time() - end_time)
+            end_time = time.time()
+            bar.suffix = '({batch} / {size})    |    Loss : {loss}    |    batch_time : {time}'.format(batch=i+1, size=len(data_dict['train_loader']), loss=train_loss.avg, time = batch_time.avg)
             bar.next()
         
         # evaluate
@@ -93,6 +99,7 @@ def main(args):
                 coord_loss = criterion(joint_img, predicted_2d)
                 val_loss += coord_loss
             val_loss /= j
+            print('\n==> Validatiaon Loss : {}'.format(val_loss))
             if val_loss < best_perf:
                 best_perf = val_loss
                 state = {
@@ -105,6 +112,7 @@ def main(args):
                 print(f'Best model updated in epoch {epoch}')
         # lr_scheduler
         lr_scheduler.step()
+        
     
 if __name__ == '__main__':
     args = get_parse_args()
@@ -116,7 +124,9 @@ if __name__ == '__main__':
     random.seed(random_seed)
     os.environ['PYTHONHASHSEED'] = str(random_seed)
     # copy from #https://pytorch.org/docs/stable/notes/randomness.html
-    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.deterministic = False
     cudnn.benchmark = True
+    cudnn.fastest = True
+    cudnn.enabled = True
 
     main(args)

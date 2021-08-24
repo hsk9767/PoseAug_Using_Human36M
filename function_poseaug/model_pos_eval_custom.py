@@ -60,11 +60,8 @@ def evaluate(data_loader, model_pos_eval, device, keypoints='gt', summary=None, 
         targets_3d = targets_3d[:, :, :] - targets_3d[:, :1, :]  # the output is relative to the 0 joint
         outputs_3d = outputs_3d[:, :, :] - outputs_3d[:, :1, :]
         
-        # compute p1 and p2
-        evaluate_joint = [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14] # w/o thorax
-
         
-        p1score = mpjpe(outputs_3d[:, evaluate_joint ,:], targets_3d[:, evaluate_joint, :]).item() * 1000.0
+        p1score = mpjpe(outputs_3d, targets_3d).item() * 1000.0
         epoch_p1.update(p1score, num_poses)
         p2score = p_mpjpe(outputs_3d.numpy(), targets_3d.numpy()).item() * 1000.0
         epoch_p2.update(p2score, num_poses)
@@ -102,7 +99,7 @@ def evaluate_3d_mppe(data_loader, model_pos_eval, device, summary=None, writer=N
     target = []
     with torch.no_grad():
         for i, temp in tqdm(enumerate(data_loader)):
-            joint_img, img_patch, targets_3d, bbox, f, c, root_cam = temp
+            img_patch, targets_3d, bbox, f, c, root_cam = temp
             bbox, root_cam = bbox.to(device), root_cam.to(device)
             # inferencing
             output_coord = model_pos_eval(img_patch)
@@ -136,7 +133,8 @@ def evaluate_3d_mppe(data_loader, model_pos_eval, device, summary=None, writer=N
     for i in range(len(output)):
         error.append(np.sqrt(np.sum((output[i] - target[i])**2,1)))
     
-    print(f'Error is {np.mean(error)}')
+    print(f'MPJPE(mm) : {np.mean(error)}')
+    return np.mean(error)
 #########################################
 # overall evaluation function
 #########################################

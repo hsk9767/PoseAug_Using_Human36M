@@ -23,8 +23,15 @@ def get_parse_args():
                         type=str, help='where the cfg of the model(hrnet-32) is taken from')
     parser.add_argument('--saved_2d', default='resnet.npz', type=str, help='results of 2D pose estimation network about Human3.6M')
     parser.add_argument('--is_train', default=True, type=lambda x: (str(x).lower() == 'true'), help='train_or_valid')
-    parser.add_argument('--path_one_stage', default = 'data/Human3.6M/snapshot_24.pth.tar', type=str, help = 'weight path of the one_stage method')
+    parser.add_argument('--vis_save_path', default='data/Human3.6M/viz/', type=str, help='results of 2D pose estimation network about Human3.6M')
+    parser.add_argument('--what_to_vis', default='s_09_act_06_subact_01_ca_01', type=str, help='results of 2D pose estimation network about Human3.6M')
     
+    # one-stage 
+    parser.add_argument('--one_stage_continue_train', default=False, type=lambda x: (str(x).lower() == 'true'), help='continue one-stage model train?')
+    parser.add_argument('--path_one_stage', default = 'data/Human3.6M/snapshot_24.pth.tar', type=str, help = 'weight path of the one_stage method')
+    parser.add_argument('--dec_start', default=17, type=int, metavar='N', help='the first epoch to lr_decay')
+    parser.add_argument('--dec_end', default=21, type=int, metavar='N', help='the last epoch to lr_decay')
+    parser.add_argument('--dec_fac', default=10, type=int, metavar='N', help='the last epoch to lr_decay')
     
     
     # Evaluate choice
