@@ -7,7 +7,10 @@ Follow the instructions in [link](https://github.com/mks0601/3DMPPE_POSENET_RELE
 
 ```sh
 $ PoseAug_Human36M
-| -- ...
+| -- .vscode
+| -- assets
+| -- checkpoint
+| -- common
 | -- data
     | -- Human3.6M
         | -- annotations
@@ -17,6 +20,7 @@ $ PoseAug_Human36M
     | -- MPII
         | -- annotations
         | -- images
+| -- data_extra
 | -- ...
 ```
 ## Run training code  
