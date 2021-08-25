@@ -20,6 +20,7 @@ from common import get_resnet
 from utils.log import Logger, savefig
 from utils.utils import save_ckpt
 import cv2
+from progress.bar import Bar
 """
 this code is used to pretrain the baseline model
 1. Simple Baseline
@@ -56,7 +57,8 @@ def main(args):
     keypoints_2d = []
     with torch.no_grad():
         # data loading
-        for i, temp in enumerate(loader):
+        bar = Bar('Train', max=len(loader))
+        for i, temp in tqdm(enumerate(loader)):
             img_patch, joint_img, joint_cam, joint_vis, bbox, img_width, img_height = temp
             img_patch = img_patch.to(device)
             
@@ -72,6 +74,9 @@ def main(args):
             detected_2d[:, :, 1] = detected_2d[:, :, 1] * bbox[:, 3:].cpu().numpy() / heatmap_w + bbox[:, 1:2].cpu().numpy()
             
             keypoints_2d.append(detected_2d)
+            
+            bar.suffix = 'Processing '
+            bar.next()
             
     keypoints_2d = np.concatenate(keypoints_2d, axis=0)
     

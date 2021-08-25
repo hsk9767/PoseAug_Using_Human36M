@@ -42,8 +42,7 @@ class DatasetLoader(Dataset):
             self.finetune = finetune
         
         # visualize
-        if vis:
-            self.vis = vis
+        self.vis = vis
         #     # length adjustment
         #     assert args is not None
         #     interested_paths = []
