@@ -71,7 +71,7 @@ def evaluate(data_loader, model_pos_eval, device, keypoints='gt', summary=None, 
         end = time.time()
 
         bar.suffix = '({batch}/{size}) Data: {data:.6f}s | Batch: {bt:.3f}s | Total: {ttl:} | ETA: {eta:} ' \
-                     '| MPJPE: {e1: .4f} | P-MPJPE: {e2: .4f}' \
+                        '| MPJPE: {e1: .4f} | P-MPJPE: {e2: .4f}' \
             .format(batch=i + 1, size=len(data_loader), data=data_time.avg, bt=batch_time.avg,
                     ttl=bar.elapsed_td, eta=bar.eta_td, e1=epoch_p1.avg,
                     e2=epoch_p2.avg)
@@ -83,6 +83,71 @@ def evaluate(data_loader, model_pos_eval, device, keypoints='gt', summary=None, 
 
     bar.finish()
     return epoch_p1.avg, epoch_p2.avg
+
+def evaluate_2d(data_loader, model_pos_eval, device, keypoints='gt', summary=None, writer=None, key='', tag='', flipaug=''):
+    batch_time = AverageMeter()
+    data_time = AverageMeter()
+    epoch_p1 = AverageMeter()
+    epoch_p2 = AverageMeter()
+
+    # Switch to evaluate mode
+    model_pos_eval.eval()
+    end = time.time()
+
+    bar = Bar('Eval posenet on {}'.format(key), max=len(data_loader))
+    for i, temp in enumerate(data_loader):
+        joint_img, targets_3d, root_cam, f, c, joint_img_not_norm = temp[0], temp[1], temp[3], temp[4], temp[5], temp[-1]
+        
+        # Measure data loading time
+        data_time.update(time.time() - end)
+        num_poses = targets_3d.size(0)
+        inputs_2d = joint_img[:, :, :2].to(device).clone()
+
+        with torch.no_grad():
+            if flipaug:  # flip the 2D pose Left <-> Right
+                joints_left = [4, 5, 6, 9, 10, 11]
+                joints_right = [1, 2, 3, 12, 13, 14]
+                out_left = [4, 5, 6, 9, 10, 11]
+                out_right = [1, 2, 3, 12, 13, 14]
+
+                inputs_2d_flip = inputs_2d.detach().clone()
+                inputs_2d_flip[:, :, 0] *= -1
+                inputs_2d_flip[:, joints_left + joints_right, :] = inputs_2d_flip[:, joints_right + joints_left, :]
+                outputs_3d_flip = model_pos_eval(inputs_2d_flip.view(num_poses, -1)).view(num_poses, -1, 3).cpu()
+                outputs_3d_flip[:, :, 0] *= -1
+                outputs_3d_flip[:, out_left + out_right, :] = outputs_3d_flip[:, out_right + out_left, :]
+
+                outputs_3d = model_pos_eval(inputs_2d.view(num_poses, -1)).view(num_poses, -1, 3).cpu()
+                outputs_3d = (outputs_3d + outputs_3d_flip) / 2.0
+
+            else:
+                outputs_3d = model_pos_eval(inputs_2d.view(num_poses, -1)).view(num_poses, -1, 3).cpu()
+
+        # caculate the relative position.
+        outputs_3d = (outputs_3d[:, :, :] - outputs_3d[:, :1, :]) * 1000.0
+        outputs_3d += root_cam.unsqueeze(1)
+        
+        # projection
+        pred_x = outputs_3d[:, :, 0] / (outputs_3d[:, :, 2] + 1e-8) * f[:, 0].unsqueeze(1) + c[:, 0].unsqueeze(1)
+        pred_y = outputs_3d[:, :, 1] / (outputs_3d[:, :, 2] + 1e-8) * f[:, 1].unsqueeze(1) + c[:, 1].unsqueeze(1)
+        pred_2d = torch.cat([pred_x.unsqueeze(2), pred_y.unsqueeze(2)], dim=2)
+        
+        pck = torch.norm(pred_2d - joint_img_not_norm[:, :, :2], dim=2).mean()
+        
+        epoch_p1.update(pck, num_poses)
+
+        # Measure elapsed time
+        batch_time.update(time.time() - end)
+        end = time.time()
+
+        bar.suffix = '({batch}/{size}) Data: {data:.6f}s | Batch: {bt:.3f}s | Total: {ttl:} | ETA: {eta:} ' \
+                        '| MPJPE: {e1: .4f}' \
+            .format(batch=i + 1, size=len(data_loader), data=data_time.avg, bt=batch_time.avg,
+                    ttl=bar.elapsed_td, eta=bar.eta_td, e1=epoch_p1.avg,)
+        bar.next()
+
+    bar.finish()
+    return epoch_p1.avg
 
 
 def evaluate_3d_mppe(data_loader, model_pos_eval, device, summary=None, writer=None, key='', tag='', flipaug=''):
@@ -97,9 +162,10 @@ def evaluate_3d_mppe(data_loader, model_pos_eval, device, summary=None, writer=N
     
     output = []
     target = []
+    bar = Bar('Eval posenet on {}'.format(key), max=len(data_loader))
     with torch.no_grad():
         for i, temp in tqdm(enumerate(data_loader)):
-            img_patch, targets_3d, bbox, f, c, root_cam = temp
+            img_patch, targets_3d, bbox, f, c, root_cam, _ = temp
             bbox, root_cam = bbox.to(device), root_cam.to(device)
             # inferencing
             output_coord = model_pos_eval(img_patch)
@@ -124,6 +190,7 @@ def evaluate_3d_mppe(data_loader, model_pos_eval, device, summary=None, writer=N
             
             output.append(outputs_3d.cpu().numpy())
             target.append(targets_3d.cpu().numpy())
+    bar.finish()
     print('==> Pre-processing end')
     output = np.concatenate(output, axis=0)
     target = np.concatenate(target, axis=0)
@@ -134,6 +201,48 @@ def evaluate_3d_mppe(data_loader, model_pos_eval, device, summary=None, writer=N
         error.append(np.sqrt(np.sum((output[i] - target[i])**2,1)))
     
     print(f'MPJPE(mm) : {np.mean(error)}')
+    return np.mean(error)
+
+def evaluate_3d_mppe_2d(data_loader, model_pos_eval, device, summary=None, writer=None, key='', tag='', flipaug=''):
+    batch_time = AverageMeter()
+    data_time = AverageMeter()
+    epoch_p1 = AverageMeter()
+    epoch_p2 = AverageMeter()
+
+    # Switch to evaluate mode
+    model_pos_eval.eval()
+    end = time.time()
+    
+    output = []
+    target = []
+    bar = Bar('Eval posenet on {}'.format(key), max=len(data_loader))
+    with torch.no_grad():
+        for i, temp in tqdm(enumerate(data_loader)):
+            img_patch, targets_3d, bbox, f, c, root_cam, joint_img = temp
+            bbox, root_cam = bbox.to(device), root_cam.to(device)
+            # inferencing
+            output_coord = model_pos_eval(img_patch)
+            num_batch = output_coord.shape[0]
+            # to original coordinate
+            for j in range(num_batch):
+                output_coord[j, :, 0] = output_coord[j, :, 0] / 64 * bbox[j][2] + bbox[j][0]
+                output_coord[j, :, 1] = output_coord[j, :, 1] / 64 * bbox[j][3] + bbox[j][1]
+                output_coord[j, :, 2] = (output_coord[j, :, 2] / 64 * 2 -1) * (1000) + root_cam[j][2]
+            
+            output.append(output_coord[:, :, :2].cpu().numpy())
+            target.append(joint_img[:, :, :2].cpu().numpy())
+            bar.next()
+    bar.finish()
+    print('==> Pre-processing end')
+    output = np.concatenate(output, axis=0)
+    target = np.concatenate(target, axis=0)
+    
+    # error calculate
+    error = []
+    for i in range(len(output)):
+        error.append(np.sqrt(np.sum((output[i] - target[i])**2,1)))
+    
+    print(f'MPJPE(pixel) : {np.mean(error)}')
     return np.mean(error)
 #########################################
 # overall evaluation function

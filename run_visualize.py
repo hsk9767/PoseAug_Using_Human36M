@@ -51,7 +51,7 @@ def main(args):
                                                                                                                         transforms.ToTensor()
                                                                                                                         , transforms.Normalize(mean=pixel_mean, std=pixel_std)]), vis=True)
         loader = DataLoader(dataset_3d, batch_size=args.batch_size, shuffle=False, num_workers=args.num_workers, pin_memory=True)
-    elif ('pelee' == args.keypoints) or ('resnet' in args.keypoints):
+    elif ('pelee' == args.keypoints) or ('resnet' in args.keypoints) or ('gt' == args.keypoints):
         data_class = Data_Custom(vis=True, detection_2d=True, original=False)
         loader = data_class.data_preparation(args)
     
@@ -82,6 +82,8 @@ def main(args):
         one_stage_model = torch.nn.DataParallel(one_stage_model)
         one_stage_model.load_state_dict(torch.load(args.path_one_stage)['network'])
         one_stage_model.eval()
+    elif 'gt' == args.keypoints:
+        pass
     else:
         raise NotImplementedError("Not supported")
     
@@ -102,8 +104,8 @@ def main(args):
                 raw_img_path, img_patch, bbox, f, c, root_cam = temp
                 img_patch, bbox, f, c, root_cam = img_patch.to(device), bbox.to(device), f.to(device), c.to(device), root_cam.to(device)
             else:
-                raw_img_path, img_patch, bbox = temp
-                img_patch, bbox = img_patch.to(device), bbox.to(device)
+                raw_img_path, img_patch, bbox, joint_img = temp
+                img_patch, bbox, joint_img = img_patch.to(device), bbox.to(device), joint_img.to(device)
             if not(args.what_to_vis in raw_img_path[0]):
                 continue
             # print('raw_img_path : ', raw_img_path[0])
@@ -112,10 +114,7 @@ def main(args):
             for ch in range(3):
                 raw_img[:, :, ch] = np.clip(raw_img[:, :, ch], 0, 255)
             img_h, img_w = raw_img.shape[:2]
-            # to check the joint_img input
-            # outputs_3d = model_pos(joint_img)
-            # outputs_3d = outputs_3d[:, :, :] - outputs_3d[:, :1, :]
-
+            
             # 1-stage
             if 'one_stage' == args.keypoints:
                 start_time = time.time()
@@ -155,6 +154,15 @@ def main(args):
                 print('fps : ', fps)
                 outputs_3d = outputs_3d[:, :, :] - outputs_3d[:, :1, :]
             
+            # 2-stage, 'gt'
+            if 'gt' == args.keypoints:
+                start_time = time.time()
+                outputs_3d = model_pos(joint_img)
+                taken_time = time.time() - start_time
+                outputs_3d = outputs_3d[:, :, :] - outputs_3d[:, :1, :]
+                fps = str(1 / taken_time)[:6]
+                print('fps : ', fps)
+                
             # visualize
             path_ = raw_img_path[0].split('_')[-1]
             save_path = path.join(args.vis_save_path, path_)

@@ -17,14 +17,11 @@ def get_parse_args():
                         help='checkpoint directory')
     parser.add_argument('--snapshot', default=25, type=int, help='save models_baseline for every (default: 20)')
     parser.add_argument('--note', default='debug', type=str, help='additional name on checkpoint directory')
-    parser.add_argument('--resnet50', default='hrnet_simplebaseline/experiments/mpii/resnet/res50_256x256_d256x3_adam_lr1e-3.yaml', 
-                        type=str, help='where the cfg of the model(simplebaseline-resnet50) is taken from')
-    parser.add_argument('--hrnet32', default='hrnet_simplebaseline/experiments/mpii/hrnet/w32_256x256_adam_lr1e-3.yaml', 
-                        type=str, help='where the cfg of the model(hrnet-32) is taken from')
     parser.add_argument('--saved_2d', default='resnet.npz', type=str, help='results of 2D pose estimation network about Human3.6M')
     parser.add_argument('--is_train', default=True, type=lambda x: (str(x).lower() == 'true'), help='train_or_valid')
     parser.add_argument('--vis_save_path', default='data/Human3.6M/viz/', type=str, help='results of 2D pose estimation network about Human3.6M')
     parser.add_argument('--what_to_vis', default='s_09_act_06_subact_01_ca_01', type=str, help='results of 2D pose estimation network about Human3.6M')
+    parser.add_argument('--evaluate_2d', default=False, type=lambda x: (str(x).lower() == 'true'), help='evaluate pck')
     
     # one-stage 
     parser.add_argument('--one_stage_continue_train', default=False, type=lambda x: (str(x).lower() == 'true'), help='continue one-stage model train?')

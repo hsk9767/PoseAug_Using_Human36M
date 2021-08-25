@@ -12,7 +12,7 @@ from function_baseline.config import get_parse_args
 # from function_baseline.data_preparation import data_preparation
 from function_baseline.data_preparation_custom import Data_Custom
 from function_baseline.model_pos_preparation import model_pos_preparation
-from function_poseaug.model_pos_eval_custom import evaluate
+from function_poseaug.model_pos_eval_custom import evaluate, evaluate_2d
 from pelee.lib.models.MOBIS_peleenet import get_pose_pelee_net
 from common import get_resnet
 from data_extra.dataset_converter import COCO2HUMAN, MPII2HUMAN
@@ -38,10 +38,13 @@ def main(args):
     model_pos.load_state_dict(ckpt['state_dict'])
 
     print('==> Evaluating...')
-    
-    error_h36m_p1, error_h36m_p2 = evaluate(data_dict['valid_loader'], model_pos, device, args.keypoints, flipaug=False)
-    print('H36M: Protocol #1   (MPJPE) overall average: {:.2f} (mm)'.format(error_h36m_p1))
-    print('H36M: Protocol #2 (P-MPJPE) overall average: {:.2f} (mm)'.format(error_h36m_p2))
+    if args.evaluate_2d:
+        pck = evaluate_2d(data_dict['valid_loader'], model_pos, device, args.keypoints)
+        print('H36M: Protocol #1   (PCK) overall average: {:.2f} (mm)'.format(pck))
+    else:
+        error_h36m_p1, error_h36m_p2 = evaluate(data_dict['valid_loader'], model_pos, device, args.keypoints, flipaug=False)
+        print('H36M: Protocol #1   (MPJPE) overall average: {:.2f} (mm)'.format(error_h36m_p1))
+        print('H36M: Protocol #2 (P-MPJPE) overall average: {:.2f} (mm)'.format(error_h36m_p2))
 
 if __name__ == '__main__':
     args = get_parse_args()

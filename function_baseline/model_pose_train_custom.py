@@ -49,8 +49,8 @@ def train(data_loader, model_pos, criterion, optimizer, device, lr_init, lr_now,
 
     bar = Bar('Train', max=len(data_loader))
     # for i, (targets_3d, inputs_2d, _, _) in enumerate(data_loader):
-    for i, (joint_img, joint_cam, joint_vis) in enumerate(data_loader):
-        
+    for i, temp in enumerate(data_loader):
+        joint_img, joint_cam = temp[0], temp[1]
         # Measure data loading time
         data_time.update(time.time() - end)
         num_poses = joint_cam.size(0)

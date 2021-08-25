@@ -8,7 +8,7 @@ import numpy as np
 import torch
 import torch.backends.cudnn as cudnn
 from function_baseline.config import get_parse_args
-from function_poseaug.model_pos_eval_custom import evaluate, evaluate_3d_mppe
+from function_poseaug.model_pos_eval_custom import evaluate, evaluate_3d_mppe, evaluate_3d_mppe_2d
 from one_stage import get_pose_net
 # from function_poseaug.model_pos_eval import evaluate
 from common.common_dataset import DatasetLoader_3d_mppe
@@ -42,7 +42,10 @@ def main(args):
     print('==> Evaluating...')
     
     # error_h36m_p1, error_h36m_p2 = evaluate(valid_loader, model, device, args.keypoints, flipaug=False)
-    evaluate_3d_mppe(valid_loader, model, device)
+    if args.evaluate_2d:
+        evaluate_3d_mppe_2d(valid_loader, model, device)
+    else:
+        evaluate_3d_mppe(valid_loader, model, device)
 
 if __name__ == '__main__':
     args = get_parse_args()
