@@ -22,6 +22,7 @@ def get_parse_args():
     parser.add_argument('--vis_save_path', default='data/Human3.6M/viz/', type=str, help='results of 2D pose estimation network about Human3.6M')
     parser.add_argument('--what_to_vis', default='s_09_act_06_subact_01_ca_01', type=str, help='results of 2D pose estimation network about Human3.6M')
     parser.add_argument('--evaluate_2d', default=False, type=lambda x: (str(x).lower() == 'true'), help='evaluate pck')
+    parser.add_argument('--only_2d', default=False, type=lambda x: (str(x).lower() == 'true'), help='evaluate pck')
     
     # one-stage 
     parser.add_argument('--one_stage_continue_train', default=False, type=lambda x: (str(x).lower() == 'true'), help='continue one-stage model train?')

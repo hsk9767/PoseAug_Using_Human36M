@@ -13,7 +13,7 @@ output_shape = (64, 64)
 bbox_3d_shape = (2000, 2000, 2000)
 
 class DatasetLoader(Dataset):
-    def __init__(self, db, ref_joints_name, is_train, transform, detection_2d=False, finetune=False, vis=False, args=None):
+    def __init__(self, db, ref_joints_name, is_train, transform, detection_2d=False, finetune=False, vis=False, only_2d = False):
         
         self.db = db.data
         self.joint_num = db.joint_num
@@ -43,17 +43,9 @@ class DatasetLoader(Dataset):
         
         # visualize
         self.vis = vis
-        #     # length adjustment
-        #     assert args is not None
-        #     interested_paths = []
-        #     for i in range(len(self.db)):
-        #         if args.what_to_vis in self.db[i]['img_path']:
-        #             interested_paths.append(self.db[i]['img_path'])
-        #             if len(interested_paths) == 1:
-        #                 self.start_index = i
-        #     self.end_index = len(interested_paths) + i - 1
-        #     self.db = self.db[self.start_index:self.end_index + 1]
-            
+        
+        # only_2d
+        self.only_2d = only_2d
 
     def __getitem__(self, index):
         
@@ -64,7 +56,7 @@ class DatasetLoader(Dataset):
         joint_img = data['joint_img']
         joint_cam = data['joint_cam']
         joint_vis = data['joint_vis']
-        # img_width, img_height = data['img_width'], data['img_height']
+        joint_img_not_norm = joint_img.copy()[:, :2]
         
         # 1. load image
         cvimg = cv2.imread(data['img_path'], cv2.IMREAD_COLOR | cv2.IMREAD_IGNORE_ORIENTATION)
@@ -76,6 +68,7 @@ class DatasetLoader(Dataset):
 
         # 3. crop patch from img and perform data augmentation (flip, rot, color scale, synthetic occlusion)
         img_patch, trans = generate_patch_image(cvimg, bbox, do_flip, scale, rot, do_occlusion)
+        img_patch_not_norm = img_patch.astype(np.float32)
         for i in range(img_channels):
             img_patch[:, :, i] = np.clip(img_patch[:, :, i] * color_scale[i], 0, 255)
         
@@ -93,10 +86,6 @@ class DatasetLoader(Dataset):
                             (joint_img[i,2] < 1)
                             )
         joint_img = joint_img[:, :2]
-        
-        # normalize [-1, 1], because the 2D keypoints are input of the lifting network
-        # if self.finetune:
-        #     joint_img = normalize_screen_coordinates(joint_img, img_width, img_height)
             
         ## to meter unit
         joint_cam = joint_cam / 1000.
@@ -110,7 +99,9 @@ class DatasetLoader(Dataset):
         if not self.bbox_output:
             return img_patch, joint_img, joint_cam, joint_vis
         elif self.vis:
-            return data['img_path'], img_patch, bbox#, data['root_cam'], data['f'], data['c']#, normalize_screen_coordinates(joint_img, img_width, img_height).astype(np.float32)
+            return data['img_path'], img_patch, bbox, normalize_screen_coordinates(joint_img_not_norm, img_width, img_height).astype(np.float32)#, data['root_cam'], data['f'], data['c']#, normalize_screen_coordinates(joint_img, img_width, img_height).astype(np.float32)
+        elif self.only_2d:
+            return img_patch, self.transform(img_patch_not_norm), bbox, joint_img_not_norm, data['f'], data['c'], joint_cam
         else:
             return img_patch, joint_img, joint_cam, joint_vis, bbox, img_width, img_height
     
@@ -172,6 +163,8 @@ class DatasetLoader_only_lifting(Dataset):
         joint_img = data['joint_img']
         joint_cam = data['joint_cam']
         joint_vis = data['joint_vis']
+        root_cam = data['root_cam']
+        f, c = data['f'], data['c']
 
         # normalize
         joint_img = joint_img[:, :2]
@@ -180,12 +173,12 @@ class DatasetLoader_only_lifting(Dataset):
         if self.keypoints != 'gt':
             joint_img = self.keypoints_2d[index]
         # normalize
-        joint_img = normalize_screen_coordinates(joint_img, img_width, img_height)
+        joint_img_ = normalize_screen_coordinates(joint_img.copy(), img_width, img_height)
 
         ## to meter unit
         joint_cam = joint_cam / 1000.
-        
         joint_img = joint_img.astype(np.float32)
+        joint_img_ = joint_img_.astype(np.float32)
         joint_cam = joint_cam.astype(np.float32)
         joint_vis = (joint_vis > 0).astype(np.float32)
         joints_have_depth = np.array([joints_have_depth]).astype(np.float32)
@@ -196,7 +189,7 @@ class DatasetLoader_only_lifting(Dataset):
                 raise IOError("Fail to read %s" % data['img_path'])
             return data['img_path'], joint_img, joint_cam
         else:
-            return joint_img, joint_cam, joint_vis    
+            return joint_img_, joint_cam, joint_vis, root_cam, f, c, joint_img
 
     def __len__(self):
         return len(self.db)
@@ -282,7 +275,6 @@ class DatasetLoader_only_inferencing(Dataset):
     def __len__(self):
         return len(self.db)
     
-
 class DatasetLoader_saved_test(Dataset):
     def __init__(self, db, ref_joints_name, is_train, transform, detection_2d=False):
         
@@ -389,7 +381,7 @@ class DatasetLoader_3d_mppe(Dataset):
             if self.vis:
                 return data['img_path'], img_patch, bbox, f, c, root_cam
             else:
-                return img_patch, joint_cam, bbox, f, c, root_cam
+                return img_patch, joint_cam, bbox, f, c, root_cam, joint_img
         
         # 4. generate from img
         if do_flip:

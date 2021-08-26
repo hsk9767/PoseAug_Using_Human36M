@@ -55,41 +55,45 @@ def main(args):
     train_loader = DataLoader(dataset=trainset_loader, batch_size=args.batch_size, shuffle=True, num_workers=args.num_workers, pin_memory=True)
     valid_loader = DataLoader(valid_dataset_3d, batch_size=32, shuffle=False, num_workers=args.num_workers, pin_memory=True)
     # train_ = DataLoader(train_dataset_3d, batch_size=args.batch_size, shuffle=False, num_workers=args.num_workers, pin_memory=True)
+    ckpt_dir_path = args.save_path_one_stage
+    os.makedirs(ckpt_dir_path, exist_ok=True)
+    print('==> Making checkpoint dir: {}'.format(ckpt_dir_path))
     
     print("==> Creating model...")
     model = get_pose_net(50, is_train=True, joint_num=18).cuda()
     model = torch.nn.DataParallel(model)
     if args.one_stage_continue_train:
-        state_dict = torch.load(args.path_one_stage, map_location='cpu')
-        model.load_state_dict(state_dict['network'])
+        state_dict = torch.load(path.join(ckpt_dir_path, f'one_stage_best.pth.tar'), map_location='cpu')
+        # state_dict = torch.load('data/Human3.6M/one_stage/16_pth.tar', map_location='cpu')
+        model.load_state_dict(state_dict['state_dict'])
         cur_lr = state_dict['lr']
-        print(f"==> Loading from {args.path_one_stage}")
+        print(f"==> Loading from {args.save_path_one_stage}")
     
-    print("==> Prepare optimizer...")    
+    print("==> Prepare optimizer...")
+    epoch_saved = 0   
     optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
     if args.one_stage_continue_train:
+        optimizer.load_state_dict(state_dict['optimizer'])
+        epoch_saved = state_dict['epoch']
         for g in optimizer.param_groups:
             g['lr'] = cur_lr
     
-    ckpt_dir_path = args.save_path_one_stage
-    os.makedirs(ckpt_dir_path, exist_ok=True)
-    print('==> Making checkpoint dir: {}'.format(ckpt_dir_path))
+    
     
     best_perf = 10000000.
-    for epoch in range(25):
+    for epoch in range(25 - epoch_saved):
         batch_time = AverageMeter()
         train_loss = AverageMeter()
         end_time = time.time()
+        epoch = epoch + epoch_saved
         
-        # lr setting
-        decay_epoch = [args.dec_start, args.dec_end]
-        
+        # lr setting        
         if epoch < args.dec_start:
             cur_lr = args.lr 
         elif epoch < args.dec_end:
-            cur_lr = args.lr * args.dec_fac
+            cur_lr = args.lr /  args.dec_fac
         else:
-            cur_lr = args.lr * ( args.dec_fac ** 2 )
+            cur_lr = args.lr / ( args.dec_fac ** 2 )
     
         for g in optimizer.param_groups:
             g['lr'] = cur_lr
@@ -139,7 +143,7 @@ def main(args):
                 "lr" : cur_lr
             }
             
-            torch.save(state, path.join(ckpt_dir_path, f'{epoch}_pth.tar'))
+            torch.save(state, path.join(ckpt_dir_path, f'one_stage_best.pth.tar'))
             print('==> Best model Updated!')
 
 if __name__ == '__main__':

@@ -57,8 +57,8 @@ def main(args):
     keypoints_2d = []
     with torch.no_grad():
         # data loading
-        bar = Bar('Train', max=len(loader))
-        for i, temp in tqdm(enumerate(loader)):
+        bar = Bar('2D save', max=len(loader))
+        for i, temp in enumerate(loader):
             img_patch, joint_img, joint_cam, joint_vis, bbox, img_width, img_height = temp
             img_patch = img_patch.to(device)
             
@@ -77,7 +77,7 @@ def main(args):
             
             bar.suffix = 'Processing '
             bar.next()
-            
+        bar.finish()
     keypoints_2d = np.concatenate(keypoints_2d, axis=0)
     
     if args.is_train:

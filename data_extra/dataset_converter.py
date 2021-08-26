@@ -1,6 +1,27 @@
 import torch
 import numpy as np
 def COCO2HUMAN(coco_keypoints):
+    '''
+    "keypoints": {
+        0: "nose",
+        1: "left_eye",
+        2: "right_eye",
+        3: "left_ear",
+        4: "right_ear",
+        5: "left_shoulder",
+        6: "right_shoulder",
+        7: "left_elbow",
+        8: "right_elbow",
+        9: "left_wrist",
+        10: "right_wrist",
+        11: "left_hip",
+        12: "right_hip",
+        13: "left_knee",
+        14: "right_knee",
+        15: "left_ankle",
+        16: "right_ankle"
+    }
+    '''
     pelvis_keypoints = np.expand_dims((coco_keypoints[:, 11, :] + coco_keypoints[:, 12, :]) / 2., 1)
     head_keypoints = np.expand_dims((coco_keypoints[:, 1, :] + coco_keypoints[:, 2, :]) / 2., 1)
     thorax_keypoints = np.expand_dims((coco_keypoints[:, 5, :] + coco_keypoints[:, 6, :]) / 2., 1)

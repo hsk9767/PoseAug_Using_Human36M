@@ -12,8 +12,7 @@ from utils.data_utils import fetch
 from utils.loss import mpjpe, p_mpjpe, compute_PCK, compute_AUC
 from utils.utils import AverageMeter
 from data_extra.dataset_converter import COCO2HUMAN, MPII2HUMAN
-from tqdm import tqdm
-
+from run_visualize import get_max_preds
 ####################################################################
 # ### evaluate p1 p2 pck auc dataset with test-flip-augmentation
 ####################################################################
@@ -149,6 +148,71 @@ def evaluate_2d(data_loader, model_pos_eval, device, keypoints='gt', summary=Non
     bar.finish()
     return epoch_p1.avg
 
+def evaluate_only_2d(data_loader, estimator, device, keypoints='gt', summary=None, writer=None, key='', tag='', flipaug=''):
+    batch_time = AverageMeter()
+    data_time = AverageMeter()
+    epoch_p1 = AverageMeter()
+    epoch_p2 = AverageMeter()
+
+    # Switch to evaluate mode
+    estimator.eval()
+    end = time.time()
+
+    bar = Bar('Eval posenet on {}'.format(key), max=len(data_loader))
+    for i, temp in enumerate(data_loader):
+        img_patch, img_patch_not_norm, bbox, joint_img, f, c, joint_cam = temp
+        f, c, joint_cam = f.numpy(), c.numpy(), joint_cam.numpy()
+        img_patch = img_patch.to(device)
+
+        # Measure data loading time
+        data_time.update(time.time() - end)
+        num_poses = joint_img.size(0)
+
+        with torch.no_grad():
+            if (keypoints == 'pelee') or ('resnet' in keypoints):
+                # inference
+                outputs_heatmaps = estimator(img_patch).cpu().numpy()
+                # to original space
+                hmap_h, hmap_w = outputs_heatmaps.shape[-2:]
+                pred = get_max_preds(outputs_heatmaps)
+                # keypoint transformation
+                if keypoints == 'pelee':
+                    pred = COCO2HUMAN(pred)
+                    eval_joint = [1,2,3,4,5,6,9,10,11,12,13,14]
+                elif 'resnet' in keypoints:
+                    pred = MPII2HUMAN(pred)
+                    eval_joint = [0,1,2,3,4,5,6,9,10,11,12,13,14,15]
+                else:
+                    raise NotImplementedError("Not supported")
+            elif keypoints == 'one_stage':
+                pred = estimator(img_patch_not_norm).cpu().numpy()
+                pred = pred[:, [0, 1, 2, 3, 4, 5, 6, 7, 10, 11, 12, 13, 14, 15, 16, 17], :]
+                eval_joint = [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14]
+            
+            # to original coordinate
+            pred[:, :, 0] = pred[:, :, 0] * bbox[:, 2:3].numpy() / 64 + bbox[:, :1].numpy()
+            pred[:, :, 1] = pred[:, :, 1] * bbox[:, 3:].numpy() / 64 + bbox[:, 1:2].numpy()
+            
+            # to 3D (each points' depth is same as GT)
+            pred [:, :, 0] = (pred[:, :, 0] - c[:, :1]) / f[:, :1] * joint_cam[:, :, 2]
+            pred [:, :, 1] = (pred[:, :, 1] - c[:, 1:2]) / f[:, 1:2] * joint_cam[:, :, 2]
+            
+        l2_distence = np.sqrt(np.sum((pred[:, eval_joint, :2] - joint_cam[:, eval_joint, :2])**2, axis=2))
+        pck = np.mean(l2_distence * 1000)
+        epoch_p1.update(pck, num_poses)
+
+        # Measure elapsed time
+        batch_time.update(time.time() - end)
+        end = time.time()
+
+        bar.suffix = '({batch}/{size}) Data: {data:.6f}s | Batch: {bt:.3f}s | Total: {ttl:} | ETA: {eta:} ' \
+                        '| MPJPE: {e1: .4f}' \
+            .format(batch=i + 1, size=len(data_loader), data=data_time.avg, bt=batch_time.avg,
+                    ttl=bar.elapsed_td, eta=bar.eta_td, e1=epoch_p1.avg,)
+        bar.next()
+
+    bar.finish()
+    return epoch_p1.avg
 
 def evaluate_3d_mppe(data_loader, model_pos_eval, device, summary=None, writer=None, key='', tag='', flipaug=''):
     batch_time = AverageMeter()
@@ -164,7 +228,7 @@ def evaluate_3d_mppe(data_loader, model_pos_eval, device, summary=None, writer=N
     target = []
     bar = Bar('Eval posenet on {}'.format(key), max=len(data_loader))
     with torch.no_grad():
-        for i, temp in tqdm(enumerate(data_loader)):
+        for i, temp in enumerate(data_loader):
             img_patch, targets_3d, bbox, f, c, root_cam, _ = temp
             bbox, root_cam = bbox.to(device), root_cam.to(device)
             # inferencing
@@ -217,7 +281,7 @@ def evaluate_3d_mppe_2d(data_loader, model_pos_eval, device, summary=None, write
     target = []
     bar = Bar('Eval posenet on {}'.format(key), max=len(data_loader))
     with torch.no_grad():
-        for i, temp in tqdm(enumerate(data_loader)):
+        for i, temp in enumerate(data_loader):
             img_patch, targets_3d, bbox, f, c, root_cam, joint_img = temp
             bbox, root_cam = bbox.to(device), root_cam.to(device)
             # inferencing
@@ -259,4 +323,5 @@ def evaluate_posenet(args, data_dict, model_pos, model_pos_eval, device, summary
         # dhp_p1, dhp_p2 = evaluate(data_dict['mpi3d_loader'], model_pos_eval, device, summary, writer,
         #                                    key='mpi3d_loader', tag=tag, flipaug='_flip')
     return h36m_p1, h36m_p2#, dhp_p1, dhp_p2
+
 
