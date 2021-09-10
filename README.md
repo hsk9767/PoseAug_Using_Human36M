@@ -57,7 +57,7 @@ python run_evaluate_custom.py --posenet_name mlp --keypoints resnet_152 --evalua
 ```
 ```sh
 # evaluate the 1-stage method
-python run_evaluate_one_stage.py --args.path_one_stage {PATH/TO/WEIGHT}
+python run_evaluate_one_stage.py --path_one_stage {PATH/TO/WEIGHT}
 ```
 ```sh
 # evaluate 2d only
