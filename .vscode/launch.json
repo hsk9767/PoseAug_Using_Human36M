@@ -5,13 +5,215 @@
     "version": "0.2.0",
     "configurations": [
         {
+            "name": "Evaluate 2d only",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/run_evaluate_2d_only.py",
+            "console": "integratedTerminal",
+            "args": [
+                "--keypoints", "one_stage",
+                "--path_2d", "data/Human3.6M/final_state.pth.tar",
+                "--only_2d", "true",
+                "--batch_size", "32"
+            ]
+        },
+        {
+            "name": "Evaluate one stage(2d)",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/run_evaluate_one_stage.py",
+            "console": "integratedTerminal",
+            "args": [
+                "--evaluate_2d",
+                "true"
+            ]
+        },
+        {
+            "name": "Evaluation mlp (2d)",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/run_evaluate_custom.py",
+            "console": "integratedTerminal",
+            "env": {
+                "CUDA_VISIBLE_DEVICES": "2"
+            },
+            "args": [
+                "--keypoints",
+                "pelee",
+                "--evaluate",
+                "checkpoint/pretrain_baseline/mlp/pelee/0818113815_pelee_from_saved/ckpt_best.pth.tar",
+                "--evaluate_2d",
+                "true"
+            ]
+        },
+        {
+            "name": "Train one stage",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/run_train_one_stage.py",
+            "console": "integratedTerminal",
+            "args": [
+                "--batch_size",
+                "32"
+            ],
+            "env": {
+                "CUDA_VISIBLE_DEVICES": "2"
+            }
+        },
+        {
+            "name": "Evaluate one stage",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/run_evaluate_one_stage.py",
+            "console": "integratedTerminal"
+        },
+        {
+            "name": "Visualize",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/run_visualize.py",
+            "console": "integratedTerminal",
+            "env": {
+                "CUDA_VISIBLE_DEVICES": "0"
+            },
+            "args": [
+                "--posenet_name",
+                "mlp",
+                "--stages",
+                "2",
+                "--evaluate",
+                "checkpoint/pretrain_baseline/mlp/gt/0821005122_debug/ckpt_best.pth.tar",
+                "--batch_size",
+                "1",
+                "--keypoints",
+                "gt",
+                "--path_2d",
+                "data/Human3.6M/pose_resnet_152_256x256.pth.tar",
+                // "--path_one_stage",
+                // "data/Human3.6M/snapshot_24.pth.tar",
+                "--vis_save_path",
+                "data/Human3.6M/viz_gt/"
+            ]
+        },
+        {
+            "name": "Finetune",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/run_finetune.py",
+            "console": "integratedTerminal",
+            "env": {
+                "CUDA_VISIBLE_DEVICES": "2"
+            },
+            "args": [
+                "--keypoints",
+                "pelee",
+                "--batch_size",
+                "32"
+            ]
+        },
+        {
+            "name": "Train_pelee",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/run_baseline_custom.py",
+            "console": "integratedTerminal",
+            "env": {
+                "CUDA_VISIBLE_DEVICES": "3"
+            },
+            "args": [
+                "--note",
+                "pelee_from_saved",
+                "--keypoints",
+                "pelee",
+                "--checkpoint",
+                "./checkpoint/pretrain_baseline/",
+                "--posenet_name",
+                "mlp",
+                "--stages",
+                "2"
+            ]
+        },
+        {
+            "name": "Detection 2D test",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/run_2d_save_test.py",
+            "console": "integratedTerminal",
+            "args": [
+                "--keypoints",
+                "resnet_152"
+            ]
+        },
+        {
+            "name": "Train_resnet",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/run_baseline_custom.py",
+            "console": "integratedTerminal",
+            "env": {
+                "CUDA_VISIBLE_DEVICES": "3"
+            },
+            "args": [
+                "--note",
+                "resnet_from_saved",
+                "--keypoints",
+                "resnet",
+                "--checkpoint",
+                "./checkpoint/pretrain_baseline/",
+                "--posenet_name",
+                "mlp",
+                "--stages",
+                "2"
+            ]
+        },
+        {
+            "name": "Detection 2D save",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/run_2d_save.py",
+            "console": "integratedTerminal",
+            "env": {
+                "CUDA_VISIBLE_DEVICES": "2"
+            },
+            "args": [
+                "--batch_size",
+                "128",
+                "--keypoints",
+                "resnet_50",
+                "--path_2d",
+                "data/Human3.6M/pose_resnet_50_256x256.pth.tar",
+                "--is_train",
+                "false",
+            ]
+        },
+        {
+            "name": "Data_loading",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/run_data_loading.py",
+            "console": "integratedTerminal",
+            "env": {
+                "CUDA_VISIBLE_DEVICES": "1"
+            },
+            "args": [
+                "--batch_size",
+                "16",
+                "--posenet_name",
+                "mlp",
+                "--stages",
+                "2",
+                "--evaluate",
+                "checkpoint/pretrain_baseline/mlp/gt/0812223723_low_batch_lr_decay_3000_poseaug_2d_style_second/ckpt_best.pth.tar"
+            ]
+        },
+        {
             "name": "Evaluation mlp",
             "type": "python",
             "request": "launch",
             "program": "${workspaceFolder}/run_evaluate_custom.py",
             "console": "integratedTerminal",
-            "env":{
-                "CUDA_VISIBLE_DEVICES" : "3"
+            "env": {
+                "CUDA_VISIBLE_DEVICES": "2"
             },
             "args": [
                 "--posenet_name",
@@ -19,9 +221,9 @@
                 "--stages",
                 "2",
                 "--keypoints",
-                "gt",
+                "resnet_152",
                 "--evaluate",
-                "checkpoint/pretrain_baseline/mlp/gt/0810141731_low_batch_lr_decay_3000/ckpt_best.pth.tar"
+                "checkpoint/pretrain_baseline/mlp/resnet_152/0824154312_resnet_152/ckpt_best.pth.tar"
             ]
         },
         {
@@ -133,7 +335,7 @@
             },
             "args": [
                 "--note",
-                "pretrain",
+                "debug",
                 "--lr",
                 "1e-3",
                 "--stages",
