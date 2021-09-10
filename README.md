@@ -56,8 +56,16 @@ python run_evaluate_custom.py --posenet_name mlp --keypoints resnet_101 --evalua
 python run_evaluate_custom.py --posenet_name mlp --keypoints resnet_152 --evaluate {PATH/TO/WEIGHT}
 ```
 ```sh
-# evaluate the 2-stage method
+# evaluate the 1-stage method
 python run_evaluate_one_stage.py --args.path_one_stage {PATH/TO/WEIGHT}
+```
+```sh
+# evaluate 2d only
+run_evaluate_2d_only.py --keypoints one_stage --only_2d true --batch_size 32
+run_evaluate_2d_only.py --keypoints pelee --path_2d {PATH/TO/PELEE/WEIGHT} --only_2d true --batch_size 32
+run_evaluate_2d_only.py --keypoints resnet_50 --path_2d {PATH/TO/PELEE/RESNET/50} --only_2d true --batch_size 32
+run_evaluate_2d_only.py --keypoints resnet_101 --path_2d {PATH/TO/PELEE/RESNET/101} --only_2d true --batch_size 32
+run_evaluate_2d_only.py --keypoints resnet_152 --path_2d {PATH/TO/PELEE/RESNET/152} --only_2d true --batch_size 32
 ```
 
 ## 2D detection result save 
