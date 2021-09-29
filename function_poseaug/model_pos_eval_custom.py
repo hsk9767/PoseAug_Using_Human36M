@@ -308,6 +308,53 @@ def evaluate_3d_mppe_2d(data_loader, model_pos_eval, device, summary=None, write
     
     print(f'MPJPE(pixel) : {np.mean(error)}')
     return np.mean(error)
+
+def evluate_MOBIS_2d(data_loader, model_pos_eval, device, summary=None, writer=None, key='', tag='', flipaug=''):
+    batch_time = AverageMeter()
+    data_time = AverageMeter()
+    epoch_p1 = AverageMeter()
+    epoch_p2 = AverageMeter()
+    
+    # Switch to evaluate mode
+    model_pos_eval.eval()
+    end = time.time()
+    
+    output = []
+    target = []
+    bar = Bar('Eval posenet on {}'.format(key), max=len(data_loader))
+    with torch.no_grad():
+        for i, temp in enumerate(data_loader):
+            img_patch, joint_img, joint_vis, bbox = temp
+            bbox, joint_vis, joint_img = bbox.to(device), joint_vis.to(device), joint_img.to(device)
+            # inferencing
+            output_coord = model_pos_eval(img_patch)
+            num_batch = output_coord.shape[0]
+            # to original coordinate
+            for j in range(num_batch):
+                output_coord[j, :, 0] = output_coord[j, :, 0] / 64 * bbox[j][2] + bbox[j][0]
+                output_coord[j, :, 1] = output_coord[j, :, 1] / 64 * bbox[j][3] + bbox[j][1]
+                # output_coord[j, :, 2] = (output_coord[j, :, 2] / 64 * 2 -1) * (1000) + root_cam[j][2]
+            
+            # # to orignial (target)
+            # joint_img
+            
+            output.append((output_coord[:, :, :2] * joint_vis).cpu().numpy())
+            target.append((joint_img[:, :, :2] * joint_vis).cpu().numpy())
+            bar.next()
+    bar.finish()
+    print('==> Pre-processing end')
+    output = np.concatenate(output, axis=0)
+    target = np.concatenate(target, axis=0)
+    
+    # error calculate
+    error = []
+    for i in range(len(output)):
+        error.append(np.sqrt(np.sum((output[i] - target[i])**2,1)))
+    
+    print(f'MPJPE(pixel) : {np.mean(error)}')
+    return np.mean(error)
+    
+    
 #########################################
 # overall evaluation function
 #########################################

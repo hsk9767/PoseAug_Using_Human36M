@@ -420,6 +420,97 @@ class DatasetLoader_3d_mppe(Dataset):
     def __len__(self):
         return len(self.db)
 
+
+class DatasetLoader_MOBIS(Dataset):
+    def __init__(self, db, ref_joints_name, is_train, transform, vis=False):
+        self.db = db.data
+        self.joint_num = db.num_joints
+        self.skeleton = db.skeleton
+        self.flip_pairs = db.flip_pairs
+        self.joints_have_depth = True
+        self.joints_name = db.joints_name
+        self.ref_joints_name = ref_joints_name
+        
+        self.transform = transform
+        self.is_train = is_train
+        self.vis = vis
+        
+    def __getitem__(self, index):
+        
+        joints_have_depth = self.joints_have_depth
+        data = copy.deepcopy(self.db[index])
+
+        bbox = data['bbox'] # top_left_x, top_left_y, width, height
+        joint_img = data['joint_img']
+        joint_vis = data['joint_vis']
+        joint_vis = np.expand_dims(joint_vis,axis=1)
+        
+        # 1. load image
+        cvimg = cv2.imread(data['img_path'], cv2.IMREAD_COLOR | cv2.IMREAD_IGNORE_ORIENTATION)
+        if not isinstance(cvimg, np.ndarray):
+            raise IOError("Fail to read %s" % data['img_path'])
+        img_height, img_width, img_channels = cvimg.shape
+        
+        # 2. get augmentation params
+        if self.is_train:    
+            scale, rot, do_flip, color_scale, do_occlusion = get_aug_config()
+        else:
+            scale, rot, do_flip, color_scale, do_occlusion = 1.0, 0.0, False, [1.0, 1.0, 1.0], False    
+            
+        # 3. crop patch from img and perform data augmentation (flip, rot, color scale, synthetic occlusion)
+        img_patch, trans = generate_patch_image(cvimg, bbox, do_flip, scale, rot, do_occlusion)
+        img_patch = img_patch.astype(np.float32)
+        for i in range(img_channels):
+            img_patch[:, :, i] = np.clip(img_patch[:, :, i] * color_scale[i], 0, 255)
+        
+        # for valid loader
+        if not self.is_train:
+            img_patch = self.transform(img_patch)
+            if self.vis:
+                return data['img_path'], img_patch, bbox, f, c, root_cam
+            else:
+                joint_vis = (joint_vis > 0).astype(np.float32)
+                return img_patch, joint_img, joint_vis, bbox
+        
+        # 4. generate from img
+        if do_flip:
+            joint_img[:, 0] = img_width - joint_img[:, 0] - 1
+            for pair in self.flip_pairs:
+                joint_img[pair[0], :], joint_img[pair[1], :] = joint_img[pair[1], :], joint_img[pair[0], :].copy()
+                joint_vis[pair[0], :], joint_vis[pair[1], :] = joint_vis[pair[1], :], joint_vis[pair[0], :].copy()
+
+        # joint_img in image plane to bbox plane
+        for i in range(len(joint_img)):
+            joint_img[i, 0:2] = trans_point2d(joint_img[i, 0:2], trans)
+            joint_img[i, 2] /= (2000/2.) # expect depth lies in -bbox_3d_shape[0]/2 ~ bbox_3d_shape[0]/2 -> -1.0 ~ 1.0
+            joint_img[i, 2] = (joint_img[i,2] + 1.0)/2. # 0~1 normalize
+            joint_vis[i] *= (
+                            (joint_img[i,0] >= 0) & \
+                            (joint_img[i,0] < input_shape[1]) & \
+                            (joint_img[i,1] >= 0) & \
+                            (joint_img[i,1] < input_shape[0]) & \
+                            (joint_img[i,2] >= 0) & \
+                            (joint_img[i,2] < 1)
+                            )
+        joint_img[:, 0] = joint_img[:, 0] / 4
+        joint_img[:, 1] = joint_img[:, 1] / 4
+        joint_img[:, 2] = joint_img[:, 2] * 64
+        
+        img_patch = self.transform(img_patch)
+        if self.ref_joints_name is not None:
+            joint_img = transform_joint_to_other_db(joint_img, self.joints_name, self.ref_joints_name)
+            joint_vis = transform_joint_to_other_db(joint_vis, self.joints_name, self.ref_joints_name)
+        joint_img = joint_img.astype(np.float32)
+        joint_vis = (joint_vis > 0).astype(np.float32)
+        joints_have_depth = np.array([joints_have_depth]).astype(np.float32)
+    
+        return img_patch, joint_img, joint_vis, joints_have_depth
+        # return img_patch, torch.from_numpy(joint_img), torch.from_numpy(np.expand_dims(joint_vis,axis=1)), torch.from_numpy(joints_have_depth)
+    
+    def __len__(self):
+        return len(self.db)
+    
+    
 class MultipleDatasets(Dataset):
     def __init__(self, dbs, make_same_len=True):
         self.dbs = dbs
