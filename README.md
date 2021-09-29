@@ -42,8 +42,11 @@ python3 run_baseline_custom.py --note resnet --checkpoint ./checkpoint/pretrain_
 ``` 
 * Below instruction does the training of 1-stage methods.
 ```sh
-# thre result will be saved in {args.save_path_one_stage}/
+# the result will be saved in {args.save_path_one_stage}/
 python run_train_one_stage.py --batch_size 32 --save_path_one_stage {PATH/TO/SAVE/WEIGHT FILE}
+
+# using private dataset
+python run_train_one_stage.py --batch_size 32 --epochs 90 --dec_start 50 --dec_end 70 --save_path_one_stage {PATH/TO/SAVE}
 ```
 
 ## Run evaluation code
