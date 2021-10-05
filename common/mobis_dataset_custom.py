@@ -22,7 +22,11 @@ class MOBIS_DATASET:
         
         self.num_joints = 13
         self.joints_name = anns['categories'][0]['keypoints']
-        self.root_idx = self.joints_name.index('nose')
+        if args.root_relative:
+            self.root_relative = True
+            self.root_idx = self.joints_name.index('nose')
+        else:
+            self.root_relative = False
         self.skeleton = anns['categories'][0]['skeleton']
         self.flip_pairs = ( (1, 2), (3, 4), (5, 6), (7, 8), (9, 10), (11, 12) )
         self.data = self.make_data(anns)
@@ -76,7 +80,8 @@ class MOBIS_DATASET:
             depth_points = np.clip(depth_points, 0, 2000) # clipping
             
             keypoints[:, 2] = depth_points
-            keypoints[:, 2] = keypoints[:, 2] - keypoints[self.root_idx, 2]
+            if self.root_relative:
+                keypoints[:, 2] = keypoints[:, 2] - keypoints[self.root_idx, 2]
             
             # data
             data.append({

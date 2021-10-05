@@ -321,6 +321,9 @@ def evluate_MOBIS_2d(data_loader, model_pos_eval, device, summary=None, writer=N
     
     output = []
     target = []
+    output_depth = []
+    target_depth = []
+    
     bar = Bar('Eval posenet on {}'.format(key), max=len(data_loader))
     with torch.no_grad():
         for i, temp in enumerate(data_loader):
@@ -333,25 +336,37 @@ def evluate_MOBIS_2d(data_loader, model_pos_eval, device, summary=None, writer=N
             for j in range(num_batch):
                 output_coord[j, :, 0] = output_coord[j, :, 0] / 64 * bbox[j][2] + bbox[j][0]
                 output_coord[j, :, 1] = output_coord[j, :, 1] / 64 * bbox[j][3] + bbox[j][1]
-                # output_coord[j, :, 2] = (output_coord[j, :, 2] / 64 * 2 -1) * (1000) + root_cam[j][2]
+                output_coord[j, :, 2] = (output_coord[j, :, 2] / 64 * 2 -1) * (1000)
             
             # # to orignial (target)
             # joint_img
             
             output.append((output_coord[:, :, :2] * joint_vis).cpu().numpy())
             target.append((joint_img[:, :, :2] * joint_vis).cpu().numpy())
+            
+            output_depth.append((output_coord[:, :, 2:3] * joint_vis).cpu().numpy())
+            target_depth.append((joint_img[:, :, 2:3] * joint_vis).cpu().numpy())
+            
             bar.next()
     bar.finish()
     print('==> Pre-processing end')
     output = np.concatenate(output, axis=0)
     target = np.concatenate(target, axis=0)
     
+    output_depth = np.concatenate(output_depth, axis=0)
+    target_depth = np.concatenate(target_depth, axis=0)
+    
     # error calculate
     error = []
     for i in range(len(output)):
         error.append(np.sqrt(np.sum((output[i] - target[i])**2,1)))
+        
+    depth_error = []
+    for i in range(len(output_depth)):
+        depth_error.append(np.sqrt(np.sum((output_depth[i] - target[i])**2, 1)))
     
     print(f'MPJPE(pixel) : {np.mean(error)}')
+    print(f'MPJPE(only depth, mm) : {np.mean(depth_error)}')
     return np.mean(error)
     
     
